@@ -1,0 +1,1589 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Support Widget Demo</title>
+<style>
+  :root {
+    --bg-page: #f5f6f8;
+    --bg-surface: #ffffff;
+    --bg-elevated: #f7f8fa;
+    --bg-elevated-2: #eef0f3;
+    --accent: #F9A637;
+    --accent-deep: #ea9a2d;
+    --accent-soft: rgba(249, 166, 55, 0.12);
+    --accent-glow: rgba(249, 166, 55, 0.25);
+    --text-primary: #1a1d23;
+    --text-secondary: #5b6371;
+    --text-muted: #9098a4;
+    --border: rgba(20, 25, 35, 0.08);
+    --border-strong: rgba(20, 25, 35, 0.12);
+    --shadow-lg: 0 24px 50px -12px rgba(20, 25, 35, 0.18), 0 8px 20px -8px rgba(20, 25, 35, 0.08), 0 0 0 1px rgba(20, 25, 35, 0.04);
+    --shadow-btn: 0 10px 25px -5px rgba(249, 166, 55, 0.45), 0 5px 12px -3px rgba(20, 25, 35, 0.15);
+    --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, sans-serif;
+    background: var(--bg-page);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+
+  /* Demo page */
+  .demo-page {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    text-align: center;
+  }
+  .demo-page h1 {
+    font-size: 40px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+  }
+  .demo-page p {
+    color: var(--text-secondary);
+    font-size: 16px;
+    max-width: 480px;
+    line-height: 1.6;
+  }
+
+  /* === GREETING BUBBLE === */
+  .sw-greeting {
+    position: fixed;
+    bottom: 38px;
+    right: 100px;
+    background: white;
+    border-radius: 10px;
+    padding: 11px 10px 11px 16px;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--text-primary);
+    box-shadow: 0 14px 36px -10px rgba(20, 25, 35, 0.22), 0 4px 10px -2px rgba(20, 25, 35, 0.08);
+    border: 1px solid rgba(20, 25, 35, 0.06);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 9997;
+    opacity: 0;
+    transform: translateX(12px) scale(0.94);
+    pointer-events: none;
+    transition: opacity 0.35s var(--ease-out), transform 0.4s var(--spring);
+    white-space: nowrap;
+  }
+  .sw-greeting.show {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    pointer-events: auto;
+  }
+  .sw-greeting::after {
+    content: "";
+    position: absolute;
+    right: -5px;
+    top: 50%;
+    width: 10px;
+    height: 10px;
+    background: white;
+    transform: translateY(-50%) rotate(45deg);
+    border-right: 1px solid rgba(20, 25, 35, 0.06);
+    border-top: 1px solid rgba(20, 25, 35, 0.06);
+    border-top-right-radius: 2px;
+  }
+  .sw-greeting-close {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: background 0.15s, color 0.15s;
+  }
+  .sw-greeting-close:hover {
+    background: var(--bg-elevated-2);
+    color: var(--text-primary);
+  }
+
+  /* === FLOATING BUTTON === */
+  .sw-fab {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent) 0%, #fbb957 100%);
+    border: none;
+    cursor: pointer;
+    box-shadow: var(--shadow-btn);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    z-index: 9999;
+    transition: transform 0.3s var(--spring), box-shadow 0.25s ease;
+  }
+  .sw-fab:hover {
+    transform: scale(1.08);
+    box-shadow: 0 15px 35px -5px rgba(249, 166, 55, 0.55), 0 8px 18px -3px rgba(20, 25, 35, 0.2);
+  }
+  .sw-fab:active { transform: scale(0.95); }
+  .sw-fab::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: var(--accent);
+    z-index: -1;
+    animation: pulse 2.4s ease-out infinite;
+  }
+  @keyframes pulse {
+    0%   { transform: scale(1);   opacity: 0.5; }
+    80%  { transform: scale(1.6); opacity: 0; }
+    100% { transform: scale(1.6); opacity: 0; }
+  }
+  .sw-fab .icon-chat { transition: opacity 0.2s, transform 0.2s; }
+  .sw-fab .icon-close {
+    position: absolute;
+    opacity: 0;
+    transform: rotate(-90deg);
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  .sw-fab.open .icon-chat { opacity: 0; transform: rotate(90deg); }
+  .sw-fab.open .icon-close { opacity: 1; transform: rotate(0deg); }
+  .sw-fab.open::before { animation: none; }
+
+  /* === PANEL === */
+  .sw-panel {
+    position: fixed;
+    bottom: 100px;
+    right: 24px;
+    width: 380px;
+    max-width: calc(100vw - 48px);
+    height: 620px;
+    max-height: calc(100vh - 130px);
+    background: var(--bg-surface);
+    border-radius: 10px;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    z-index: 9998;
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+    pointer-events: none;
+    transform-origin: bottom right;
+    transition: opacity 0.35s var(--ease-out), transform 0.4s var(--spring);
+  }
+  .sw-panel.open {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+  }
+
+  /* === HEADER (glassmorphic with decoration) === */
+  .sw-header {
+    padding: 18px 20px 16px;
+    background: linear-gradient(135deg, #fff4dd 0%, #ffffff 75%);
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+  .sw-header::before {
+    content: "";
+    position: absolute;
+    top: -40px;
+    right: -30px;
+    width: 140px;
+    height: 140px;
+    background: radial-gradient(circle, var(--accent-glow) 0%, transparent 65%);
+    pointer-events: none;
+  }
+  .sw-header-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Animated avatar (Maya face) */
+  .sw-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent) 0%, #fbb957 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    position: relative;
+    box-shadow: 0 4px 12px -2px rgba(249, 166, 55, 0.5), inset 0 -2px 4px rgba(0,0,0,0.08);
+    animation: breathe 4s ease-in-out infinite;
+  }
+  @keyframes breathe {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.04); }
+  }
+  .sw-avatar::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 11px;
+    height: 11px;
+    background: #22c55e;
+    border-radius: 50%;
+    border: 2.5px solid #fff;
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5);
+    animation: statusPulse 2.2s ease-out infinite;
+  }
+  @keyframes statusPulse {
+    0%   { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5); }
+    70%  { box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+  }
+  .sw-avatar svg .sw-eye {
+    transform-origin: center;
+    transform-box: fill-box;
+    animation: blink 5.5s infinite;
+  }
+  @keyframes blink {
+    0%, 92%, 100% { transform: scaleY(1); }
+    94%           { transform: scaleY(0.1); }
+    96%           { transform: scaleY(1); }
+  }
+
+  .sw-header-info { flex: 1; min-width: 0; }
+  .sw-header-title {
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+  }
+  .sw-header-sub {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    margin-top: 3px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .sw-header-sub strong { color: var(--text-primary); font-weight: 600; }
+
+  .sw-header-badge {
+    background: var(--accent-soft);
+    color: var(--accent-deep);
+    padding: 5px 9px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+    border: 1px solid rgba(249, 166, 55, 0.2);
+  }
+
+  .sw-back {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, color 0.15s;
+    z-index: 2;
+  }
+  .sw-back:hover { background: var(--bg-elevated-2); color: var(--text-primary); }
+
+  /* === VIEWS === */
+  .sw-views { flex: 1; position: relative; overflow: hidden; }
+  .sw-view {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    transform: translateX(20px);
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.3s var(--ease-out);
+  }
+  .sw-view.active {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
+  }
+
+  /* === MENU VIEW === */
+  .sw-menu {
+    padding: 20px 18px 12px;
+    flex: 1;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--bg-elevated-2) transparent;
+  }
+  .sw-menu::-webkit-scrollbar { width: 6px; }
+  .sw-menu::-webkit-scrollbar-thumb { background: var(--bg-elevated-2); border-radius: 3px; }
+
+  .sw-menu-greeting { padding: 0 4px 16px; }
+  .sw-menu-greeting h2 {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+    color: var(--text-primary);
+  }
+  .sw-menu-greeting p {
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .sw-wave {
+    display: inline-block;
+    vertical-align: -4px;
+    margin-left: 6px;
+    color: var(--accent);
+    animation: wave 2.4s ease-in-out infinite;
+    transform-origin: 70% 70%;
+  }
+  @keyframes wave {
+    0%, 60%, 100% { transform: rotate(0deg); }
+    10% { transform: rotate(14deg); }
+    20% { transform: rotate(-8deg); }
+    30% { transform: rotate(14deg); }
+    40% { transform: rotate(-4deg); }
+    50% { transform: rotate(10deg); }
+  }
+
+  /* === SEARCH === */
+  .sw-search {
+    position: relative;
+    margin-bottom: 18px;
+  }
+  .sw-search-icon {
+    position: absolute;
+    left: 13px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    pointer-events: none;
+    transition: color 0.15s;
+  }
+  .sw-search input {
+    width: 100%;
+    padding: 11px 14px 11px 40px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--text-primary);
+    outline: none;
+    transition: all 0.2s;
+  }
+  .sw-search input::placeholder { color: var(--text-muted); }
+  .sw-search input:focus {
+    border-color: var(--accent);
+    background: white;
+    box-shadow: 0 0 0 3px rgba(249, 166, 55, 0.15);
+  }
+  .sw-search input:focus + .sw-search-icon,
+  .sw-search:focus-within .sw-search-icon { color: var(--accent); }
+
+  /* === SECTIONS === */
+  .sw-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    margin-bottom: 8px;
+    padding-left: 4px;
+  }
+
+  /* Articles */
+  .sw-articles {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 18px;
+  }
+  .sw-article {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 10px 10px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: left;
+    color: var(--text-primary);
+    font-family: inherit;
+    width: 100%;
+    transition: background 0.15s;
+  }
+  .sw-article:hover { background: #fffaf2; }
+  .sw-article-icon {
+    color: var(--accent);
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    background: var(--accent-soft);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .sw-article-text {
+    flex: 1;
+    font-size: 13.5px;
+    font-weight: 500;
+    line-height: 1.35;
+  }
+  .sw-article-arrow {
+    color: var(--text-muted);
+    opacity: 0;
+    transform: translateX(-4px);
+    transition: opacity 0.15s, transform 0.15s, color 0.15s;
+    flex-shrink: 0;
+  }
+  .sw-article:hover .sw-article-arrow {
+    opacity: 1;
+    transform: translateX(0);
+    color: var(--accent);
+  }
+
+  /* Divider */
+  .sw-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 6px 4px 14px;
+    font-size: 10.5px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 600;
+  }
+  .sw-divider::before,
+  .sw-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--border-strong);
+  }
+
+  /* === CONTACT OPTIONS (compact) === */
+  .sw-options { display: flex; flex-direction: column; gap: 8px; }
+  .sw-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    cursor: pointer;
+    text-align: left;
+    color: var(--text-primary);
+    font-family: inherit;
+    transition: background 0.15s, border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+    width: 100%;
+  }
+  .sw-option:hover {
+    background: #fffaf2;
+    border-color: rgba(249, 166, 55, 0.45);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px -8px rgba(249, 166, 55, 0.4);
+  }
+  .sw-option:active { transform: translateY(0); }
+  .sw-option-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .sw-option-body { flex: 1; min-width: 0; }
+  .sw-option-title { font-size: 14px; font-weight: 600; line-height: 1.2; color: var(--text-primary); }
+  .sw-option-desc { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
+  .sw-option-arrow { color: var(--text-muted); transition: transform 0.15s, color 0.15s; flex-shrink: 0; }
+  .sw-option:hover .sw-option-arrow { color: var(--accent); transform: translateX(3px); }
+
+  /* Staggered entrance */
+  .sw-panel.open .sw-menu > * {
+    animation: itemIn 0.5s var(--ease-out) backwards;
+  }
+  .sw-panel.open .sw-menu > *:nth-child(1) { animation-delay: 0.10s; }
+  .sw-panel.open .sw-menu > *:nth-child(2) { animation-delay: 0.16s; }
+  .sw-panel.open .sw-menu > *:nth-child(3) { animation-delay: 0.22s; }
+  .sw-panel.open .sw-menu > *:nth-child(4) { animation-delay: 0.28s; }
+  .sw-panel.open .sw-menu > *:nth-child(5) { animation-delay: 0.34s; }
+  .sw-panel.open .sw-menu > *:nth-child(6) { animation-delay: 0.40s; }
+  @keyframes itemIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* === CONTACT (email/whatsapp full views) === */
+  .sw-contact {
+    padding: 30px 24px;
+    text-align: center;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .sw-contact-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 10px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 18px;
+  }
+  .sw-contact h3 { font-size: 19px; margin-bottom: 8px; font-weight: 600; color: var(--text-primary); }
+  .sw-contact p { color: var(--text-secondary); font-size: 14px; line-height: 1.55; margin-bottom: 22px; max-width: 280px; }
+  .sw-contact-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(135deg, var(--accent) 0%, #fbb957 100%);
+    color: white;
+    text-decoration: none;
+    padding: 13px 22px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 14.5px;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 6px 16px -4px rgba(249, 166, 55, 0.5);
+  }
+  .sw-contact-link:hover { transform: translateY(-2px); box-shadow: 0 10px 22px -4px rgba(249, 166, 55, 0.6); }
+
+  /* === CHAT === */
+  .sw-chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 18px 18px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--bg-elevated-2) transparent;
+  }
+  .sw-chat-messages::-webkit-scrollbar { width: 6px; }
+  .sw-chat-messages::-webkit-scrollbar-thumb { background: var(--bg-elevated-2); border-radius: 3px; }
+  .sw-chat-messages::-webkit-scrollbar-track { background: transparent; }
+
+  .sw-msg {
+    max-width: 80%;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 14.5px;
+    line-height: 1.45;
+    animation: msgIn 0.3s var(--ease-out);
+    word-wrap: break-word;
+  }
+  @keyframes msgIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .sw-msg.bot {
+    align-self: flex-start;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-bottom-left-radius: 3px;
+    color: var(--text-primary);
+  }
+  .sw-msg.user {
+    align-self: flex-end;
+    background: linear-gradient(135deg, var(--accent) 0%, #fbb957 100%);
+    color: white;
+    border-bottom-right-radius: 3px;
+    box-shadow: 0 4px 10px -3px rgba(249, 166, 55, 0.45);
+  }
+  .sw-msg strong { font-weight: 600; }
+
+  .sw-typing {
+    align-self: flex-start;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    padding: 12px 16px;
+    border-radius: 10px;
+    border-bottom-left-radius: 3px;
+    display: flex;
+    gap: 4px;
+    animation: msgIn 0.2s ease;
+  }
+  .sw-typing span {
+    width: 7px;
+    height: 7px;
+    background: var(--text-muted);
+    border-radius: 50%;
+    animation: typingDot 1.4s infinite ease-in-out;
+  }
+  .sw-typing span:nth-child(2) { animation-delay: 0.2s; }
+  .sw-typing span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes typingDot {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30%           { transform: translateY(-6px); opacity: 1; }
+  }
+
+  .sw-quick-replies {
+    padding: 0 18px 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .sw-chip {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-strong);
+    color: var(--text-secondary);
+    font-size: 12.5px;
+    padding: 7px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .sw-chip:hover {
+    background: var(--accent-soft);
+    color: #92560e;
+    border-color: rgba(249, 166, 55, 0.5);
+  }
+
+  .sw-chat-input {
+    padding: 12px 14px 14px;
+    border-top: 1px solid var(--border);
+    background: var(--bg-surface);
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+  }
+  .sw-chat-input textarea {
+    flex: 1;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    color: var(--text-primary);
+    padding: 11px 14px;
+    font-family: inherit;
+    font-size: 14.5px;
+    resize: none;
+    line-height: 1.4;
+    max-height: 100px;
+    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  }
+  .sw-chat-input textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: white;
+    box-shadow: 0 0 0 3px rgba(249, 166, 55, 0.15);
+  }
+  .sw-chat-input textarea::placeholder { color: var(--text-muted); }
+  .sw-send {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent) 0%, #fbb957 100%);
+    border: none;
+    cursor: pointer;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: transform 0.15s, opacity 0.15s;
+    box-shadow: 0 4px 10px -3px rgba(249, 166, 55, 0.5);
+  }
+  .sw-send:hover { transform: translateY(-1px); }
+  .sw-send:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .sw-footer {
+    padding: 10px 18px;
+    border-top: 1px solid var(--border);
+    font-size: 11.5px;
+    color: var(--text-muted);
+    text-align: left;
+    background: var(--bg-elevated);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .sw-footer .dot { width: 4px; height: 4px; border-radius: 50%; background: var(--accent); display: inline-block; }
+  .sw-footer strong { color: var(--text-primary); font-weight: 600; }
+
+  /* === TABS === */
+  .sw-tabs {
+    display: flex;
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    position: relative;
+  }
+  .sw-tab {
+    flex: 1;
+    background: transparent;
+    border: none;
+    padding: 12px 16px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    transition: color 0.2s, background 0.15s;
+  }
+  .sw-tab:hover:not(.active) {
+    color: var(--text-secondary);
+    background: rgba(20, 25, 35, 0.02);
+  }
+  .sw-tab.active { color: var(--text-primary); }
+  .sw-tab svg { opacity: 0.6; transition: opacity 0.2s, color 0.2s; }
+  .sw-tab.active svg { opacity: 1; color: var(--accent); }
+  .sw-tab::after {
+    content: "";
+    position: absolute;
+    bottom: -1px;
+    left: 50%;
+    right: 50%;
+    height: 2px;
+    background: var(--accent);
+    border-radius: 2px 2px 0 0;
+    transition: left 0.3s var(--spring), right 0.3s var(--spring);
+  }
+  .sw-tab.active::after { left: 14px; right: 14px; }
+  .sw-tabs.hidden { display: none; }
+
+  /* === CONTACT ROW (bottom of Aide tab) === */
+  .sw-contact-row {
+    border-top: 1px solid var(--border);
+    padding: 11px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: var(--bg-surface);
+    flex-shrink: 0;
+  }
+  .sw-contact-row-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+  .sw-contact-chips { display: flex; gap: 6px; }
+  .sw-contact-chip {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    padding: 5px 9px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    font-family: inherit;
+  }
+  .sw-contact-chip:hover {
+    background: var(--accent-soft);
+    border-color: rgba(249, 166, 55, 0.5);
+    color: var(--accent-deep);
+  }
+  .sw-contact-chip svg { opacity: 0.7; }
+  .sw-contact-chip:hover svg { opacity: 1; }
+
+  /* === ARTICLE VIEW === */
+  .sw-article-view {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .sw-art-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 22px 22px 18px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--bg-elevated-2) transparent;
+  }
+  .sw-art-scroll::-webkit-scrollbar { width: 6px; }
+  .sw-art-scroll::-webkit-scrollbar-thumb { background: var(--bg-elevated-2); border-radius: 3px; }
+  .sw-art-scroll::-webkit-scrollbar-track { background: transparent; }
+
+  .sw-art-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    font-size: 11.5px;
+    color: var(--text-muted);
+  }
+  .sw-art-badge {
+    background: var(--accent-soft);
+    color: var(--accent-deep);
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 3px 8px;
+    border-radius: 8px;
+    border: 1px solid rgba(249, 166, 55, 0.2);
+  }
+
+  .sw-art-title {
+    font-size: 21px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.25;
+    color: var(--text-primary);
+    margin-bottom: 18px;
+  }
+
+  .sw-art-body {
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--text-secondary);
+  }
+  .sw-art-body p { margin-bottom: 14px; }
+  .sw-art-body p:last-child { margin-bottom: 0; }
+  .sw-art-body h3 {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-top: 18px;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .sw-art-body ol,
+  .sw-art-body ul {
+    margin-bottom: 14px;
+    padding-left: 20px;
+  }
+  .sw-art-body li {
+    margin-bottom: 6px;
+    padding-left: 2px;
+  }
+  .sw-art-body li::marker { color: var(--accent); font-weight: 600; }
+  .sw-art-body strong {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+  .sw-art-body code {
+    background: var(--bg-elevated-2);
+    color: var(--accent-deep);
+    font-family: "SF Mono", Monaco, "Cascadia Code", Consolas, monospace;
+    font-size: 12.5px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .sw-art-tip {
+    background: linear-gradient(135deg, #fff8ec 0%, #fffaf2 100%);
+    border-left: 3px solid var(--accent);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin: 16px 0;
+    line-height: 1.55;
+  }
+  .sw-art-tip strong {
+    color: var(--accent-deep);
+    display: block;
+    margin-bottom: 4px;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+  }
+
+  .sw-art-feedback {
+    border-top: 1px solid var(--border);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: var(--bg-elevated);
+  }
+  .sw-art-feedback-q {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+  .sw-art-feedback-btns { display: flex; gap: 6px; }
+  .sw-fb-btn {
+    background: white;
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    padding: 6px 10px;
+    cursor: pointer;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .sw-fb-btn:hover {
+    background: var(--accent-soft);
+    border-color: rgba(249, 166, 55, 0.5);
+    color: var(--accent-deep);
+  }
+  .sw-fb-btn.selected {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent-deep);
+  }
+  .sw-art-thanks {
+    font-size: 12.5px;
+    color: var(--accent-deep);
+    font-weight: 600;
+    animation: msgIn 0.3s var(--ease-out);
+  }
+
+  @media (max-width: 480px) {
+    .sw-panel {
+      width: calc(100vw - 24px);
+      right: 12px;
+      bottom: 92px;
+      height: calc(100vh - 110px);
+    }
+    .sw-fab { right: 16px; bottom: 16px; }
+    .sw-greeting { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="demo-page">
+  <h1>Business Toolbox</h1>
+  <p>Démo du widget de support flottant. Cliquez sur le bouton en bas à droite pour ouvrir le centre d'aide.</p>
+</div>
+
+<!-- Greeting bubble -->
+<div class="sw-greeting" id="swGreeting">
+  <span>Besoin d'aide ? 👋</span>
+  <button class="sw-greeting-close" id="swGreetingClose" aria-label="Fermer">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18"></line>
+      <line x1="6" y1="6" x2="18" y2="18"></line>
+    </svg>
+  </button>
+</div>
+
+<!-- Floating action button -->
+<button class="sw-fab" id="swFab" aria-label="Ouvrir le support">
+  <svg class="icon-chat" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+  </svg>
+  <svg class="icon-close" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="18" y1="6" x2="6" y2="18"></line>
+    <line x1="6" y1="6" x2="18" y2="18"></line>
+  </svg>
+</button>
+
+<!-- Panel -->
+<div class="sw-panel" id="swPanel" role="dialog" aria-label="Panneau de support">
+  <div class="sw-header">
+    <button class="sw-back" id="swBack" aria-label="Retour">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 5"></polyline>
+      </svg>
+    </button>
+    <div class="sw-header-top" id="swHeaderContent">
+      <div class="sw-avatar">
+        <svg width="42" height="42" viewBox="0 0 42 42">
+          <ellipse class="sw-eye" cx="15" cy="18" rx="2.2" ry="2.8" fill="white"/>
+          <ellipse class="sw-eye" cx="27" cy="18" rx="2.2" ry="2.8" fill="white"/>
+          <path d="M15 26 Q21 30.5 27 26" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/>
+        </svg>
+      </div>
+      <div class="sw-header-info">
+        <div class="sw-header-title">Maya</div>
+        <div class="sw-header-sub">En ligne · <strong>98%</strong> résolus</div>
+      </div>
+      <div class="sw-header-badge">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+        ~2 min
+      </div>
+    </div>
+  </div>
+
+  <div class="sw-tabs" id="swTabs">
+    <button class="sw-tab active" data-tab="aide">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path>
+      </svg>
+      Aide
+    </button>
+    <button class="sw-tab" data-tab="chat">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+      </svg>
+      Chat
+    </button>
+  </div>
+
+  <div class="sw-views">
+    <!-- AIDE TAB -->
+    <div class="sw-view active" id="viewAide">
+      <div class="sw-menu">
+        <div class="sw-menu-greeting">
+          <h2 id="swGreetingText">Bonjour<svg class="sw-wave" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 11V6.5a1.5 1.5 0 0 0-3 0V12"></path>
+            <path d="M15 11V4.5a1.5 1.5 0 0 0-3 0V12"></path>
+            <path d="M12 11V5.5a1.5 1.5 0 0 0-3 0V13"></path>
+            <path d="M9 11.5V8.5a1.5 1.5 0 0 0-3 0V16c0 2 1.5 5 5 5h2c3 0 5-2 5-5v-5a1.5 1.5 0 0 0-3 0"></path>
+          </svg></h2>
+          <p>Sur quoi tu bosses aujourd'hui ?</p>
+        </div>
+
+        <div class="sw-search">
+          <span class="sw-search-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="7"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </span>
+          <input type="text" id="swSearch" placeholder="Rechercher dans l'aide..." />
+        </div>
+
+        <div>
+          <div class="sw-section-title">Articles populaires</div>
+          <div class="sw-articles">
+            <button class="sw-article" data-slug="workflow">
+              <div class="sw-article-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="13 2 13 9 20 9"></polygon>
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                </svg>
+              </div>
+              <div class="sw-article-text">Configurer un workflow GHL</div>
+              <svg class="sw-article-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </button>
+            <button class="sw-article" data-slug="email">
+              <div class="sw-article-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="13 2 13 9 20 9"></polygon>
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                </svg>
+              </div>
+              <div class="sw-article-text">Paramètres SMTP &amp; Mailgun</div>
+              <svg class="sw-article-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </button>
+            <button class="sw-article" data-slug="snapshot">
+              <div class="sw-article-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="13 2 13 9 20 9"></polygon>
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                </svg>
+              </div>
+              <div class="sw-article-text">Créer et utiliser un snapshot</div>
+              <svg class="sw-article-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="sw-contact-row">
+        <span class="sw-contact-row-label">Besoin d'un humain ?</span>
+        <div class="sw-contact-chips">
+          <a class="sw-contact-chip" href="mailto:support@businesstoolbox.io">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+              <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+            </svg>
+            Email
+          </a>
+          <a class="sw-contact-chip" href="https://wa.me/15145550199" target="_blank" rel="noopener">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413"/>
+            </svg>
+            WhatsApp
+          </a>
+        </div>
+      </div>
+
+      <div class="sw-footer">
+        <span class="dot"></span>
+        <span>Powered by <strong>Business Toolbox</strong></span>
+      </div>
+    </div>
+
+    <!-- CHAT VIEW -->
+    <div class="sw-view" id="viewChat">
+      <div class="sw-chat-messages" id="chatMessages"></div>
+      <div class="sw-quick-replies" id="quickReplies">
+        <button class="sw-chip" data-msg="Comment configurer un workflow ?">Workflow</button>
+        <button class="sw-chip" data-msg="Comment configurer mon calendrier ?">Calendrier</button>
+        <button class="sw-chip" data-msg="Paramètres email">Email</button>
+        <button class="sw-chip" data-msg="Comment utiliser un snapshot ?">Snapshot</button>
+      </div>
+      <form class="sw-chat-input" id="chatForm">
+        <textarea id="chatInput" rows="1" placeholder="Tapez votre message..." autocomplete="off"></textarea>
+        <button type="submit" class="sw-send" id="chatSend" aria-label="Envoyer">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </form>
+    </div>
+
+    <!-- ARTICLE VIEW -->
+    <div class="sw-view" id="viewArticle">
+      <div class="sw-article-view">
+        <div class="sw-art-scroll">
+          <div class="sw-art-meta">
+            <span class="sw-art-badge">Guide</span>
+            <span>·</span>
+            <span id="artReadTime">2 min de lecture</span>
+          </div>
+          <h2 class="sw-art-title" id="artTitle"></h2>
+          <div class="sw-art-body" id="artBody"></div>
+        </div>
+        <div class="sw-art-feedback" id="artFeedback">
+          <div class="sw-art-feedback-q">Cette réponse vous a aidé ?</div>
+          <div class="sw-art-feedback-btns">
+            <button class="sw-fb-btn" data-fb="yes">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M7 10v12"></path>
+                <path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H7v-12a4 4 0 0 1 4-4 1 1 0 0 1 1 1z"></path>
+              </svg>
+              Oui
+            </button>
+            <button class="sw-fb-btn" data-fb="no">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 14V2"></path>
+                <path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H17v12a4 4 0 0 1-4 4 1 1 0 0 1-1-1z"></path>
+              </svg>
+              Non
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    const fab            = document.getElementById('swFab');
+    const panel          = document.getElementById('swPanel');
+    const backBtn        = document.getElementById('swBack');
+    const headerContent  = document.getElementById('swHeaderContent');
+    const greeting       = document.getElementById('swGreeting');
+    const greetingClose  = document.getElementById('swGreetingClose');
+    const greetingText   = document.getElementById('swGreetingText');
+    const searchInput    = document.getElementById('swSearch');
+
+    const tabsBar = document.getElementById('swTabs');
+    const tabButtons = document.querySelectorAll('.sw-tab');
+    const views = {
+      aide:    document.getElementById('viewAide'),
+      chat:    document.getElementById('viewChat'),
+      article: document.getElementById('viewArticle'),
+    };
+    const TAB_VIEWS = ['aide', 'chat'];
+    const SUB_VIEWS = ['article'];
+    const artTitle    = document.getElementById('artTitle');
+    const artBody     = document.getElementById('artBody');
+    const artReadTime = document.getElementById('artReadTime');
+    const artFeedback = document.getElementById('artFeedback');
+
+    const chatMessages = document.getElementById('chatMessages');
+    const chatForm     = document.getElementById('chatForm');
+    const chatInput    = document.getElementById('chatInput');
+    const quickReplies = document.getElementById('quickReplies');
+
+    let isOpen = false;
+    let currentView = 'aide';
+    let activeTab = 'aide';
+    let chatInitialized = false;
+    let greetingDismissed = false;
+
+    // === Time-based greeting ===
+    function setTimeGreeting() {
+      const h = new Date().getHours();
+      let g = "Bonjour";
+      if (h >= 18 || h < 5) g = "Bonsoir";
+      else if (h >= 12) g = "Bon après-midi";
+      // Preserve the wave SVG child
+      const wave = greetingText.querySelector('.sw-wave');
+      greetingText.firstChild.nodeValue = g;
+    }
+    setTimeGreeting();
+
+    // === Greeting bubble (auto-show after delay) ===
+    setTimeout(() => {
+      if (!isOpen && !greetingDismissed) {
+        greeting.classList.add('show');
+      }
+    }, 1800);
+
+    greetingClose.addEventListener('click', (e) => {
+      e.stopPropagation();
+      greeting.classList.remove('show');
+      greetingDismissed = true;
+    });
+
+    greeting.addEventListener('click', (e) => {
+      if (e.target.closest('.sw-greeting-close')) return;
+      setOpen(true);
+    });
+
+    // === Open / close ===
+    function setOpen(open) {
+      isOpen = open;
+      fab.classList.toggle('open', isOpen);
+      panel.classList.toggle('open', isOpen);
+      if (isOpen) {
+        greeting.classList.remove('show');
+        greetingDismissed = true;
+        if (currentView === 'chat' && !chatInitialized) initChat();
+      }
+    }
+    fab.addEventListener('click', () => setOpen(!isOpen));
+
+    // === Tabs ===
+    tabButtons.forEach(btn => {
+      btn.addEventListener('click', () => showView(btn.dataset.tab));
+    });
+
+    // === Back button (sub-views only) ===
+    backBtn.addEventListener('click', () => showView(activeTab));
+
+    function showView(name) {
+      Object.entries(views).forEach(([k, el]) => {
+        el.classList.toggle('active', k === name);
+      });
+      currentView = name;
+
+      const isSub = SUB_VIEWS.includes(name);
+      tabsBar.classList.toggle('hidden', isSub);
+      backBtn.style.display = isSub ? 'flex' : 'none';
+      headerContent.style.paddingLeft = isSub ? '40px' : '0';
+
+      if (TAB_VIEWS.includes(name)) {
+        activeTab = name;
+        tabButtons.forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.tab === name);
+        });
+        if (name === 'chat' && !chatInitialized) initChat();
+      }
+    }
+
+    // === Articles database ===
+    const articles = {
+      workflow: {
+        title: "Configurer un workflow dans GHL",
+        readTime: "3 min de lecture",
+        body: `
+          <p>Les workflows GHL permettent d'automatiser des séquences d'actions déclenchées par un événement (formulaire soumis, tag ajouté, rendez-vous réservé...).</p>
+
+          <h3>Créer le workflow</h3>
+          <ol>
+            <li>Allez dans <code>Automation → Workflows</code>, puis cliquez sur <strong>+ Create Workflow</strong>.</li>
+            <li>Choisissez un modèle vierge ou partez d'un template prédéfini.</li>
+            <li>Sélectionnez un <strong>déclencheur</strong> (form submitted, tag added, appointment booked, etc.).</li>
+            <li>Ajoutez les <strong>actions</strong> souhaitées : envoi email/SMS, attente, condition If/Else, update contact.</li>
+          </ol>
+
+          <div class="sw-art-tip">
+            <strong>Astuce</strong>
+            Pensez à activer le workflow avec le toggle en haut à droite avant de tester. Sans activation, les déclencheurs n'enregistrent rien.
+          </div>
+
+          <h3>Pour aller plus loin</h3>
+          <p>Utilisez les <strong>conditions If/Else</strong> pour personnaliser le parcours selon le profil du contact (tag, custom field, source d'acquisition...).</p>
+        `
+      },
+      email: {
+        title: "Paramètres SMTP & Mailgun",
+        readTime: "2 min de lecture",
+        body: `
+          <p>Configurer un service email dédié évite que vos messages tombent en spam et améliore la délivrabilité globale de votre compte.</p>
+
+          <h3>Connecter Mailgun (recommandé)</h3>
+          <ol>
+            <li>Allez dans <code>Settings → Email Services</code>.</li>
+            <li>Choisissez <strong>Mailgun</strong>, entrez votre clé API privée et votre domaine vérifié.</li>
+            <li>Cliquez sur <strong>Save</strong> et envoyez un email test depuis un contact.</li>
+          </ol>
+
+          <h3>Authentification du domaine</h3>
+          <p>Pour passer les filtres anti-spam, configurez ces trois enregistrements DNS sur votre domaine :</p>
+          <ul>
+            <li><code>SPF</code> — autorise Mailgun à envoyer en votre nom</li>
+            <li><code>DKIM</code> — signe cryptographiquement vos emails</li>
+            <li><code>DMARC</code> — politique en cas d'échec d'authentification</li>
+          </ul>
+
+          <div class="sw-art-tip">
+            <strong>Astuce</strong>
+            Testez votre configuration sur <code>mail-tester.com</code> avant d'envoyer en volume. Un score sous 8/10 garantit des problèmes en boîte de réception.
+          </div>
+        `
+      },
+      snapshot: {
+        title: "Créer et utiliser un snapshot",
+        readTime: "2 min de lecture",
+        body: `
+          <p>Un snapshot capture la configuration complète d'un sous-compte : workflows, calendriers, pipelines, formulaires, surveys, funnels, custom fields et plus encore.</p>
+
+          <h3>Cas d'usage typiques</h3>
+          <ul>
+            <li>Déployer la même configuration sur plusieurs clients</li>
+            <li>Vendre un snapshot prêt à l'emploi (par industrie)</li>
+            <li>Sauvegarder l'état d'un compte avant une modification majeure</li>
+          </ul>
+
+          <h3>Charger un snapshot</h3>
+          <ol>
+            <li>Depuis l'<code>Agency View</code>, allez dans <strong>Snapshots</strong>.</li>
+            <li>Sélectionnez votre snapshot et cliquez sur <strong>Load to Sub-Account</strong>.</li>
+            <li>Choisissez le sous-compte cible et confirmez l'import.</li>
+          </ol>
+
+          <div class="sw-art-tip">
+            <strong>Attention</strong>
+            Charger un snapshot peut écraser certaines configurations existantes. Faites une sauvegarde si le compte cible contient déjà du contenu critique.
+          </div>
+        `
+      }
+    };
+
+    function showArticle(slug) {
+      const art = articles[slug];
+      if (!art) return;
+      artTitle.textContent = art.title;
+      artBody.innerHTML = art.body;
+      artReadTime.textContent = art.readTime;
+      // Reset feedback state
+      artFeedback.innerHTML = `
+        <div class="sw-art-feedback-q">Cette réponse vous a aidé ?</div>
+        <div class="sw-art-feedback-btns">
+          <button class="sw-fb-btn" data-fb="yes">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M7 10v12"></path>
+              <path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H7v-12a4 4 0 0 1 4-4 1 1 0 0 1 1 1z"></path>
+            </svg>
+            Oui
+          </button>
+          <button class="sw-fb-btn" data-fb="no">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 14V2"></path>
+              <path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H17v12a4 4 0 0 1-4 4 1 1 0 0 1-1-1z"></path>
+            </svg>
+            Non
+          </button>
+        </div>
+      `;
+      bindFeedback();
+      // Scroll to top of article
+      artFeedback.parentElement.querySelector('.sw-art-scroll').scrollTop = 0;
+      showView('article');
+    }
+
+    function bindFeedback() {
+      artFeedback.querySelectorAll('.sw-fb-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const fb = btn.dataset.fb;
+          if (fb === 'yes') {
+            artFeedback.innerHTML = `<div class="sw-art-thanks">Merci pour votre retour 🎉</div>`;
+          } else {
+            // Redirect to chat with the article question
+            const slug = artFeedback.dataset.slug;
+            showView('chat');
+            const q = `J'ai besoin d'aide sur : ${artTitle.textContent}`;
+            if (!chatInitialized) {
+              initChat();
+              setTimeout(() => handleSend(q), 400);
+            } else {
+              handleSend(q);
+            }
+          }
+        });
+      });
+    }
+
+    // === Article clicks → open article view ===
+    document.querySelectorAll('.sw-article').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const slug = btn.dataset.slug;
+        artFeedback.dataset.slug = slug;
+        showArticle(slug);
+      });
+    });
+
+    // === Search → enter submits to chat ===
+    searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && searchInput.value.trim()) {
+        const q = searchInput.value.trim();
+        searchInput.value = '';
+        showView('chat');
+        if (!chatInitialized) {
+          initChat();
+          setTimeout(() => handleSend(q), 400);
+        } else {
+          handleSend(q);
+        }
+      }
+    });
+
+    // === Chat logic ===
+    const responses = {
+      workflow: {
+        kw: ['workflow', 'workflows', 'automatisation'],
+        text: "Pour créer un workflow dans GHL, allez dans <strong>Automation → Workflows → + Create Workflow</strong>. Choisissez un déclencheur (formulaire soumis, tag ajouté, rendez-vous, etc.), puis ajoutez des actions (envoi d'email/SMS, attente, condition, mise à jour de contact...). Pensez à activer le workflow en haut à droite avant de tester."
+      },
+      calendar: {
+        kw: ['calendrier', 'calendar', 'rendez-vous', 'rdv'],
+        text: "Pour configurer un calendrier : <strong>Calendars → Calendar Settings → + Create Calendar</strong>. Définissez la durée des slots, vos disponibilités hebdo, le buffer entre les RDV et les rappels automatiques. Vous pouvez ensuite l'intégrer à un formulaire ou via un lien direct."
+      },
+      email: {
+        kw: ['email', 'mail', 'smtp', 'mailgun'],
+        text: "Les paramètres email se trouvent dans <strong>Settings → Email Services</strong>. Vous pouvez connecter Mailgun (recommandé pour le volume), SMTP custom ou utiliser le SMTP par défaut. N'oubliez pas de configurer le SPF, DKIM et DMARC sur votre domaine pour éviter les filtres anti-spam."
+      },
+      snapshot: {
+        kw: ['snapshot', 'snapshots', 'modèle', 'template'],
+        text: "Un snapshot capture la configuration complète d'un sous-compte (workflows, calendriers, pipelines, formulaires...). Pour l'utiliser : <strong>Agency View → Snapshots → Load to Sub-Account</strong>. Idéal pour déployer rapidement la même config sur plusieurs clients."
+      }
+    };
+    const fallback = "Je ne trouve pas de réponse précise à votre question. Je vous recommande de contacter notre équipe par <strong>email</strong> ou <strong>WhatsApp</strong> pour une assistance personnalisée.";
+
+    function initChat() {
+      chatInitialized = true;
+      setTimeout(() => {
+        addMessage("Salut ! Je suis Maya, l'assistante IA de Business Toolbox. Pose-moi une question sur GHL, ou utilise l'une des suggestions ci-dessous 👇", 'bot');
+      }, 200);
+    }
+    function addMessage(html, role) {
+      const div = document.createElement('div');
+      div.className = `sw-msg ${role}`;
+      div.innerHTML = html;
+      chatMessages.appendChild(div);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    function showTyping() {
+      const div = document.createElement('div');
+      div.className = 'sw-typing';
+      div.id = 'typingIndicator';
+      div.innerHTML = '<span></span><span></span><span></span>';
+      chatMessages.appendChild(div);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    function hideTyping() {
+      const t = document.getElementById('typingIndicator');
+      if (t) t.remove();
+    }
+    function findResponse(text) {
+      const lower = text.toLowerCase();
+      for (const key in responses) {
+        if (responses[key].kw.some(kw => lower.includes(kw))) {
+          return responses[key].text;
+        }
+      }
+      return fallback;
+    }
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+    function handleSend(text) {
+      const trimmed = text.trim();
+      if (!trimmed) return;
+      addMessage(escapeHtml(trimmed), 'user');
+      chatInput.value = '';
+      chatInput.style.height = 'auto';
+      quickReplies.style.display = 'none';
+      showTyping();
+      setTimeout(() => {
+        hideTyping();
+        addMessage(findResponse(trimmed), 'bot');
+      }, 1000);
+    }
+
+    chatForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      handleSend(chatInput.value);
+    });
+    chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleSend(chatInput.value);
+      }
+    });
+    chatInput.addEventListener('input', () => {
+      chatInput.style.height = 'auto';
+      chatInput.style.height = Math.min(chatInput.scrollHeight, 100) + 'px';
+    });
+    quickReplies.querySelectorAll('.sw-chip').forEach(chip => {
+      chip.addEventListener('click', () => handleSend(chip.dataset.msg));
+    });
+  })();
+</script>
+
+</body>
+</html>
