@@ -169,6 +169,31 @@
   .sw-fab.open .icon-close { opacity: 1; transform: rotate(0deg); }
   .sw-fab.open::before { animation: none; }
 
+  /* Unread badge on FAB */
+  .sw-fab-badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    background: #ef4444;
+    color: white;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid white;
+    transform: scale(0);
+    transition: transform 0.3s var(--spring);
+    pointer-events: none;
+    box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
+  }
+  .sw-fab-badge.show { transform: scale(1); }
+  .sw-fab.open .sw-fab-badge { transform: scale(0); }
+
   /* === PANEL === */
   .sw-panel {
     position: fixed;
@@ -265,6 +290,11 @@
     transform-box: fill-box;
     animation: blink 5.5s infinite;
   }
+  /* Face moods */
+  .sw-face { display: none; }
+  .sw-avatar[data-mood="default"]   .sw-face-default   { display: inline; }
+  .sw-avatar[data-mood="happy"]     .sw-face-happy     { display: inline; }
+  .sw-avatar[data-mood="concerned"] .sw-face-concerned { display: inline; }
   @keyframes blink {
     0%, 92%, 100% { transform: scaleY(1); }
     94%           { transform: scaleY(0.1); }
@@ -611,13 +641,34 @@
   .sw-chat-messages::-webkit-scrollbar-thumb { background: var(--bg-elevated-2); border-radius: 3px; }
   .sw-chat-messages::-webkit-scrollbar-track { background: transparent; }
 
+  /* Message rows with optional avatar */
+  .sw-msg-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 7px;
+    max-width: 88%;
+    animation: msgIn 0.3s var(--ease-out);
+  }
+  .sw-msg-row.bot { align-self: flex-start; }
+  .sw-msg-row.user { align-self: flex-end; }
+  .sw-msg-mini-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent) 0%, #fbb957 100%);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 2px;
+    box-shadow: 0 2px 6px -2px rgba(249, 166, 55, 0.5);
+  }
+
   .sw-msg {
-    max-width: 80%;
     padding: 10px 14px;
     border-radius: 10px;
     font-size: 14.5px;
     line-height: 1.45;
-    animation: msgIn 0.3s var(--ease-out);
     word-wrap: break-word;
   }
   @keyframes msgIn {
@@ -625,18 +676,42 @@
     to   { opacity: 1; transform: translateY(0); }
   }
   .sw-msg.bot {
-    align-self: flex-start;
     background: var(--bg-elevated);
     border: 1px solid var(--border);
     border-bottom-left-radius: 3px;
     color: var(--text-primary);
   }
   .sw-msg.user {
-    align-self: flex-end;
     background: linear-gradient(135deg, var(--accent) 0%, #fbb957 100%);
     color: white;
     border-bottom-right-radius: 3px;
     box-shadow: 0 4px 10px -3px rgba(249, 166, 55, 0.45);
+  }
+
+  /* Bot suggestions after a reply */
+  .sw-msg-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-left: 31px; /* aligns under bot bubble (avatar 24 + gap 7) */
+    animation: msgIn 0.3s var(--ease-out) 0.2s backwards;
+  }
+  .sw-suggestion {
+    background: white;
+    border: 1px solid var(--border-strong);
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .sw-suggestion:hover {
+    background: var(--accent-soft);
+    color: var(--accent-deep);
+    border-color: rgba(249, 166, 55, 0.5);
   }
   .sw-msg strong { font-weight: 600; }
 
@@ -990,6 +1065,137 @@
     animation: msgIn 0.3s var(--ease-out);
   }
 
+  /* Related articles inside article view */
+  .sw-art-related {
+    margin-top: 26px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+  }
+  .sw-art-related-title {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 10px;
+  }
+  .sw-art-related-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .sw-art-related-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: left;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    width: 100%;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .sw-art-related-item:hover {
+    background: #fffaf2;
+    border-color: rgba(249, 166, 55, 0.4);
+  }
+  .sw-art-related-item svg { color: var(--accent); flex-shrink: 0; }
+  .sw-art-related-item-text { flex: 1; }
+  .sw-art-related-item-arrow {
+    color: var(--text-muted);
+    transition: transform 0.15s, color 0.15s;
+  }
+  .sw-art-related-item:hover .sw-art-related-item-arrow {
+    color: var(--accent);
+    transform: translateX(2px);
+  }
+
+  /* Clickable link inside bot bubble */
+  .sw-bot-link {
+    color: inherit;
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-color: var(--accent);
+    text-underline-offset: 2px;
+    cursor: pointer;
+  }
+  .sw-bot-link:hover {
+    color: var(--accent-deep);
+    text-decoration-thickness: 2px;
+  }
+
+  /* No search results */
+  .sw-search-empty {
+    text-align: center;
+    padding: 20px 10px;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-style: italic;
+    display: none;
+  }
+  .sw-search-empty.show { display: block; }
+
+  /* === Onboarding tip (first open) === */
+  .sw-onboarding-tip {
+    margin: 0 18px 14px;
+    padding: 11px 14px;
+    background: linear-gradient(135deg, #fff8ec 0%, #fffaf2 100%);
+    border: 1px solid rgba(249, 166, 55, 0.3);
+    border-radius: 10px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    line-height: 1.45;
+    animation: msgIn 0.5s var(--ease-out) 0.4s backwards;
+    position: relative;
+  }
+  .sw-onboarding-tip-icon {
+    color: var(--accent);
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .sw-onboarding-tip-text { flex: 1; }
+  .sw-onboarding-tip-text strong { color: var(--text-primary); }
+  .sw-onboarding-close {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 5px;
+    flex-shrink: 0;
+    transition: background 0.15s, color 0.15s;
+  }
+  .sw-onboarding-close:hover {
+    background: rgba(20, 25, 35, 0.06);
+    color: var(--text-primary);
+  }
+  .sw-onboarding-tip.hidden { display: none; }
+
+  /* === Reduced motion === */
+  @media (prefers-reduced-motion: reduce) {
+    .sw-fab, .sw-fab *, .sw-fab::before,
+    .sw-panel, .sw-panel *, .sw-panel *::before, .sw-panel *::after,
+    .sw-greeting, .sw-greeting * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
   @media (max-width: 480px) {
     .sw-panel {
       width: calc(100vw - 24px);
@@ -1029,6 +1235,7 @@
     <line x1="18" y1="6" x2="6" y2="18"></line>
     <line x1="6" y1="6" x2="18" y2="18"></line>
   </svg>
+  <span class="sw-fab-badge" id="swFabBadge" aria-hidden="true">1</span>
 </button>
 
 <!-- Panel -->
@@ -1041,11 +1248,25 @@
       </svg>
     </button>
     <div class="sw-header-top" id="swHeaderContent">
-      <div class="sw-avatar">
+      <div class="sw-avatar" id="swMayaAvatar" data-mood="default">
         <svg width="42" height="42" viewBox="0 0 42 42">
-          <ellipse class="sw-eye" cx="15" cy="18" rx="2.2" ry="2.8" fill="white"/>
-          <ellipse class="sw-eye" cx="27" cy="18" rx="2.2" ry="2.8" fill="white"/>
-          <path d="M15 26 Q21 30.5 27 26" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/>
+          <g class="sw-face sw-face-default">
+            <ellipse class="sw-eye" cx="15" cy="18" rx="2.2" ry="2.8" fill="white"/>
+            <ellipse class="sw-eye" cx="27" cy="18" rx="2.2" ry="2.8" fill="white"/>
+            <path d="M15 26 Q21 30.5 27 26" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/>
+          </g>
+          <g class="sw-face sw-face-happy">
+            <path d="M12 19 Q15 16 18 19" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/>
+            <path d="M24 19 Q27 16 30 19" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/>
+            <path d="M13 25 Q21 32 29 25" stroke="white" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+          </g>
+          <g class="sw-face sw-face-concerned">
+            <ellipse class="sw-eye" cx="15" cy="20" rx="2" ry="2.4" fill="white"/>
+            <ellipse class="sw-eye" cx="27" cy="20" rx="2" ry="2.4" fill="white"/>
+            <line x1="11" y1="14" x2="17" y2="12" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
+            <line x1="25" y1="12" x2="31" y2="14" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
+            <circle cx="21" cy="27" r="1.6" fill="none" stroke="white" stroke-width="1.6"/>
+          </g>
         </svg>
       </div>
       <div class="sw-header-info">
@@ -1089,6 +1310,23 @@
             <path d="M9 11.5V8.5a1.5 1.5 0 0 0-3 0V16c0 2 1.5 5 5 5h2c3 0 5-2 5-5v-5a1.5 1.5 0 0 0-3 0"></path>
           </svg></h2>
           <p>Sur quoi tu bosses aujourd'hui ?</p>
+        </div>
+
+        <div class="sw-onboarding-tip hidden" id="swOnboardingTip">
+          <svg class="sw-onboarding-tip-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 18h6"></path>
+            <path d="M10 22h4"></path>
+            <path d="M15.09 14a5 5 0 1 0-6.18 0 5 5 0 0 1 1.59 4 1 1 0 0 0 1 1h2a1 1 0 0 0 1-1 5 5 0 0 1 1.59-4z"></path>
+          </svg>
+          <div class="sw-onboarding-tip-text">
+            <strong>Astuce :</strong> tape ta question dans la barre de recherche, choisis un article populaire, ou bascule sur le tab <strong>Chat</strong> pour discuter avec Maya.
+          </div>
+          <button class="sw-onboarding-close" id="swOnboardingClose" aria-label="Fermer le conseil">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
         </div>
 
         <div class="sw-search">
@@ -1141,6 +1379,7 @@
               </svg>
             </button>
           </div>
+          <div class="sw-search-empty" id="swSearchEmpty">Aucun article ne correspond à votre recherche.</div>
         </div>
 
       </div>
@@ -1201,6 +1440,10 @@
           </div>
           <h2 class="sw-art-title" id="artTitle"></h2>
           <div class="sw-art-body" id="artBody"></div>
+          <div class="sw-art-related" id="artRelated" style="display:none">
+            <div class="sw-art-related-title">Articles similaires</div>
+            <div class="sw-art-related-list" id="artRelatedList"></div>
+          </div>
         </div>
         <div class="sw-art-feedback" id="artFeedback">
           <div class="sw-art-feedback-q">Cette réponse vous a aidé ?</div>
@@ -1250,17 +1493,86 @@
     const artBody     = document.getElementById('artBody');
     const artReadTime = document.getElementById('artReadTime');
     const artFeedback = document.getElementById('artFeedback');
+    const artRelated  = document.getElementById('artRelated');
+    const artRelatedList = document.getElementById('artRelatedList');
+    const searchEmpty = document.getElementById('swSearchEmpty');
 
     const chatMessages = document.getElementById('chatMessages');
     const chatForm     = document.getElementById('chatForm');
     const chatInput    = document.getElementById('chatInput');
     const quickReplies = document.getElementById('quickReplies');
 
-    let isOpen = false;
-    let currentView = 'aide';
-    let activeTab = 'aide';
+    const fabBadge = document.getElementById('swFabBadge');
+    const mayaAvatar = document.getElementById('swMayaAvatar');
+    const onboardingTip = document.getElementById('swOnboardingTip');
+    const onboardingClose = document.getElementById('swOnboardingClose');
+
+    // Mini avatar SVG used next to each bot bubble
+    const MINI_AVATAR_SVG = `
+      <svg width="24" height="24" viewBox="0 0 42 42">
+        <ellipse cx="15" cy="18" rx="2.2" ry="2.8" fill="white"/>
+        <ellipse cx="27" cy="18" rx="2.2" ry="2.8" fill="white"/>
+        <path d="M15 26 Q21 30.5 27 26" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/>
+      </svg>`;
+
+    function setMayaMood(mood) {
+      mayaAvatar.dataset.mood = mood;
+      // Auto-return to default after a short while (except happy stays)
+      if (mood === 'concerned') {
+        clearTimeout(setMayaMood._t);
+        setMayaMood._t = setTimeout(() => { mayaAvatar.dataset.mood = 'default'; }, 4500);
+      }
+    }
+
+    // === Persistent state ===
+    const STATE_KEY = 'bt-support-widget-v1';
+    const defaultState = {
+      isOpen: false,
+      activeTab: 'aide',
+      chatHistory: [],
+      greetingDismissed: false,
+      onboardingDone: false,
+      unread: 0
+    };
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STATE_KEY);
+        if (!raw) return { ...defaultState };
+        return { ...defaultState, ...JSON.parse(raw) };
+      } catch { return { ...defaultState }; }
+    }
+    function saveState() {
+      try {
+        localStorage.setItem(STATE_KEY, JSON.stringify({
+          isOpen,
+          activeTab,
+          chatHistory,
+          greetingDismissed,
+          onboardingDone,
+          unread
+        }));
+      } catch {}
+    }
+
+    const persisted = loadState();
+    let isOpen = false; // restored after init
+    let currentView = persisted.activeTab;
+    let activeTab = persisted.activeTab;
     let chatInitialized = false;
-    let greetingDismissed = false;
+    let greetingDismissed = persisted.greetingDismissed;
+    let onboardingDone = persisted.onboardingDone;
+    let unread = persisted.unread;
+    let chatHistory = persisted.chatHistory || [];
+
+    function updateBadge() {
+      if (unread > 0 && !isOpen) {
+        fabBadge.textContent = unread > 9 ? '9+' : unread;
+        fabBadge.classList.add('show');
+      } else {
+        fabBadge.classList.remove('show');
+      }
+    }
+    updateBadge();
 
     // === Time-based greeting ===
     function setTimeGreeting() {
@@ -1285,6 +1597,7 @@
       e.stopPropagation();
       greeting.classList.remove('show');
       greetingDismissed = true;
+      saveState();
     });
 
     greeting.addEventListener('click', (e) => {
@@ -1300,10 +1613,39 @@
       if (isOpen) {
         greeting.classList.remove('show');
         greetingDismissed = true;
+        unread = 0;
+        updateBadge();
+        if (!onboardingDone && activeTab === 'aide') {
+          onboardingTip.classList.remove('hidden');
+        }
         if (currentView === 'chat' && !chatInitialized) initChat();
+      } else {
+        updateBadge();
       }
+      saveState();
     }
-    fab.addEventListener('click', () => setOpen(!isOpen));
+
+    onboardingClose.addEventListener('click', () => {
+      onboardingTip.classList.add('hidden');
+      onboardingDone = true;
+      saveState();
+    });
+    fab.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setOpen(!isOpen);
+    });
+
+    // === Click outside to close ===
+    document.addEventListener('click', (e) => {
+      if (!isOpen) return;
+      if (panel.contains(e.target) || fab.contains(e.target) || greeting.contains(e.target)) return;
+      setOpen(false);
+    });
+
+    // === Escape to close ===
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && isOpen) setOpen(false);
+    });
 
     // === Tabs ===
     tabButtons.forEach(btn => {
@@ -1330,6 +1672,7 @@
           btn.classList.toggle('active', btn.dataset.tab === name);
         });
         if (name === 'chat' && !chatInitialized) initChat();
+        saveState();
       }
     }
 
@@ -1338,6 +1681,7 @@
       workflow: {
         title: "Configurer un workflow dans GHL",
         readTime: "3 min de lecture",
+        related: ['email', 'snapshot'],
         body: `
           <p>Les workflows GHL permettent d'automatiser des séquences d'actions déclenchées par un événement (formulaire soumis, tag ajouté, rendez-vous réservé...).</p>
 
@@ -1361,6 +1705,7 @@
       email: {
         title: "Paramètres SMTP & Mailgun",
         readTime: "2 min de lecture",
+        related: ['workflow', 'snapshot'],
         body: `
           <p>Configurer un service email dédié évite que vos messages tombent en spam et améliore la délivrabilité globale de votre compte.</p>
 
@@ -1388,6 +1733,7 @@
       snapshot: {
         title: "Créer et utiliser un snapshot",
         readTime: "2 min de lecture",
+        related: ['workflow', 'email'],
         body: `
           <p>Un snapshot capture la configuration complète d'un sous-compte : workflows, calendriers, pipelines, formulaires, surveys, funnels, custom fields et plus encore.</p>
 
@@ -1419,6 +1765,35 @@
       artTitle.textContent = art.title;
       artBody.innerHTML = art.body;
       artReadTime.textContent = art.readTime;
+
+      // Render related articles
+      if (art.related && art.related.length) {
+        artRelatedList.innerHTML = art.related.map(rSlug => {
+          const r = articles[rSlug];
+          if (!r) return '';
+          return `<button class="sw-art-related-item" data-slug="${rSlug}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="13 2 13 9 20 9"></polygon>
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            </svg>
+            <span class="sw-art-related-item-text">${r.title}</span>
+            <svg class="sw-art-related-item-arrow" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </button>`;
+        }).join('');
+        artRelated.style.display = '';
+        artRelatedList.querySelectorAll('.sw-art-related-item').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const newSlug = btn.dataset.slug;
+            artFeedback.dataset.slug = newSlug;
+            showArticle(newSlug);
+          });
+        });
+      } else {
+        artRelated.style.display = 'none';
+      }
+
       // Reset feedback state
       artFeedback.innerHTML = `
         <div class="sw-art-feedback-q">Cette réponse vous a aidé ?</div>
@@ -1451,6 +1826,8 @@
           const fb = btn.dataset.fb;
           if (fb === 'yes') {
             artFeedback.innerHTML = `<div class="sw-art-thanks">Merci pour votre retour 🎉</div>`;
+            setMayaMood('happy');
+            setTimeout(() => setMayaMood('default'), 4500);
           } else {
             // Redirect to chat with the article question
             const slug = artFeedback.dataset.slug;
@@ -1476,11 +1853,30 @@
       });
     });
 
-    // === Search → enter submits to chat ===
+    // === Live search → filter articles as user types ===
+    const allArticleButtons = document.querySelectorAll('.sw-article');
+    searchInput.addEventListener('input', () => {
+      const q = searchInput.value.trim().toLowerCase();
+      let visible = 0;
+      allArticleButtons.forEach(btn => {
+        const title = btn.querySelector('.sw-article-text').textContent.toLowerCase();
+        const slug = btn.dataset.slug;
+        const bodyText = articles[slug] ? articles[slug].body.toLowerCase() : '';
+        const match = !q || title.includes(q) || bodyText.includes(q);
+        btn.style.display = match ? 'flex' : 'none';
+        if (match) visible++;
+      });
+      searchEmpty.classList.toggle('show', q.length > 0 && visible === 0);
+    });
+
+    // Enter in search → send to chat
     searchInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && searchInput.value.trim()) {
         const q = searchInput.value.trim();
         searchInput.value = '';
+        // Reset filter
+        allArticleButtons.forEach(btn => btn.style.display = 'flex');
+        searchEmpty.classList.remove('show');
         showView('chat');
         if (!chatInitialized) {
           initChat();
@@ -1495,35 +1891,73 @@
     const responses = {
       workflow: {
         kw: ['workflow', 'workflows', 'automatisation'],
-        text: "Pour créer un workflow dans GHL, allez dans <strong>Automation → Workflows → + Create Workflow</strong>. Choisissez un déclencheur (formulaire soumis, tag ajouté, rendez-vous, etc.), puis ajoutez des actions (envoi d'email/SMS, attente, condition, mise à jour de contact...). Pensez à activer le workflow en haut à droite avant de tester."
+        text: "Pour créer un workflow dans GHL, allez dans <strong>Automation → Workflows → + Create Workflow</strong>. Choisissez un déclencheur (formulaire soumis, tag ajouté, rendez-vous, etc.), puis ajoutez des actions (envoi d'email/SMS, attente, condition, mise à jour de contact...). Pensez à activer le workflow en haut à droite avant de tester.\n\nJ'ai un [guide complet sur les workflows](article:workflow) si tu veux les détails.",
+        suggestions: ["Comment ajouter une condition ?", "Templates disponibles", "Activer un workflow"]
       },
       calendar: {
         kw: ['calendrier', 'calendar', 'rendez-vous', 'rdv'],
-        text: "Pour configurer un calendrier : <strong>Calendars → Calendar Settings → + Create Calendar</strong>. Définissez la durée des slots, vos disponibilités hebdo, le buffer entre les RDV et les rappels automatiques. Vous pouvez ensuite l'intégrer à un formulaire ou via un lien direct."
+        text: "Pour configurer un calendrier : <strong>Calendars → Calendar Settings → + Create Calendar</strong>. Définissez la durée des slots, vos disponibilités hebdo, le buffer entre les RDV et les rappels automatiques. Vous pouvez ensuite l'intégrer à un formulaire ou via un lien direct.",
+        suggestions: ["Lier à un workflow", "Rappels automatiques", "Calendrier d'équipe"]
       },
       email: {
         kw: ['email', 'mail', 'smtp', 'mailgun'],
-        text: "Les paramètres email se trouvent dans <strong>Settings → Email Services</strong>. Vous pouvez connecter Mailgun (recommandé pour le volume), SMTP custom ou utiliser le SMTP par défaut. N'oubliez pas de configurer le SPF, DKIM et DMARC sur votre domaine pour éviter les filtres anti-spam."
+        text: "Les paramètres email se trouvent dans <strong>Settings → Email Services</strong>. Tu peux connecter Mailgun (recommandé), SMTP custom, ou utiliser le SMTP par défaut. N'oublie pas de configurer SPF, DKIM et DMARC sur ton domaine.\n\nVoir le [guide détaillé Mailgun](article:email) pour les étapes complètes.",
+        suggestions: ["C'est quoi SPF/DKIM ?", "Tester la délivrabilité", "Email vs SMS"]
       },
       snapshot: {
         kw: ['snapshot', 'snapshots', 'modèle', 'template'],
-        text: "Un snapshot capture la configuration complète d'un sous-compte (workflows, calendriers, pipelines, formulaires...). Pour l'utiliser : <strong>Agency View → Snapshots → Load to Sub-Account</strong>. Idéal pour déployer rapidement la même config sur plusieurs clients."
+        text: "Un snapshot capture la configuration complète d'un sous-compte (workflows, calendriers, pipelines, formulaires...). Pour l'utiliser : <strong>Agency View → Snapshots → Load to Sub-Account</strong>.\n\nDétails complets dans [Créer et utiliser un snapshot](article:snapshot).",
+        suggestions: ["Créer mon premier snapshot", "Vendre un snapshot", "Mettre à jour un snapshot"]
       }
     };
-    const fallback = "Je ne trouve pas de réponse précise à votre question. Je vous recommande de contacter notre équipe par <strong>email</strong> ou <strong>WhatsApp</strong> pour une assistance personnalisée.";
+    const fallback = {
+      text: "Je ne trouve pas de réponse précise à ta question. Tu peux contacter notre équipe par <strong>email</strong> ou <strong>WhatsApp</strong> via le tab Aide → Besoin d'un humain.",
+      suggestions: ["Comment configurer un workflow ?", "Paramètres email", "Utiliser un snapshot"],
+      isFallback: true
+    };
+
+    function renderBotText(text) {
+      // Convert \n\n to <br><br>, then [text](article:slug) → clickable link
+      return text
+        .replace(/\n\n/g, '<br><br>')
+        .replace(/\[([^\]]+)\]\(article:([a-z]+)\)/g,
+          '<a class="sw-bot-link" data-article="$2">$1</a>');
+    }
 
     function initChat() {
       chatInitialized = true;
+      if (chatHistory.length > 0) {
+        // Restore previous conversation
+        chatHistory.forEach(m => renderMessage(m.html, m.role));
+        quickReplies.style.display = 'none';
+        return;
+      }
       setTimeout(() => {
         addMessage("Salut ! Je suis Maya, l'assistante IA de Business Toolbox. Pose-moi une question sur GHL, ou utilise l'une des suggestions ci-dessous 👇", 'bot');
       }, 200);
     }
-    function addMessage(html, role) {
-      const div = document.createElement('div');
-      div.className = `sw-msg ${role}`;
-      div.innerHTML = html;
-      chatMessages.appendChild(div);
+    function renderMessage(html, role) {
+      const row = document.createElement('div');
+      row.className = `sw-msg-row ${role}`;
+      if (role === 'bot') {
+        row.innerHTML = `
+          <div class="sw-msg-mini-avatar">${MINI_AVATAR_SVG}</div>
+          <div class="sw-msg ${role}">${html}</div>`;
+      } else {
+        row.innerHTML = `<div class="sw-msg ${role}">${html}</div>`;
+      }
+      chatMessages.appendChild(row);
       chatMessages.scrollTop = chatMessages.scrollHeight;
+      return row;
+    }
+    function addMessage(html, role) {
+      renderMessage(html, role);
+      chatHistory.push({ html, role });
+      if (role === 'bot' && !isOpen) {
+        unread++;
+        updateBadge();
+      }
+      saveState();
     }
     function showTyping() {
       const div = document.createElement('div');
@@ -1541,10 +1975,25 @@
       const lower = text.toLowerCase();
       for (const key in responses) {
         if (responses[key].kw.some(kw => lower.includes(kw))) {
-          return responses[key].text;
+          return responses[key];
         }
       }
       return fallback;
+    }
+
+    function renderSuggestions(suggestions) {
+      if (!suggestions || !suggestions.length) return;
+      const wrap = document.createElement('div');
+      wrap.className = 'sw-msg-suggestions';
+      wrap.innerHTML = suggestions.map(s => `<button class="sw-suggestion">${escapeHtml(s)}</button>`).join('');
+      wrap.querySelectorAll('.sw-suggestion').forEach((btn, i) => {
+        btn.addEventListener('click', () => {
+          wrap.remove();
+          handleSend(suggestions[i]);
+        });
+      });
+      chatMessages.appendChild(wrap);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
     }
     function escapeHtml(str) {
       const div = document.createElement('div');
@@ -1554,6 +2003,8 @@
     function handleSend(text) {
       const trimmed = text.trim();
       if (!trimmed) return;
+      // Remove any lingering suggestions from previous bot reply
+      chatMessages.querySelectorAll('.sw-msg-suggestions').forEach(el => el.remove());
       addMessage(escapeHtml(trimmed), 'user');
       chatInput.value = '';
       chatInput.style.height = 'auto';
@@ -1561,9 +2012,21 @@
       showTyping();
       setTimeout(() => {
         hideTyping();
-        addMessage(findResponse(trimmed), 'bot');
+        const resp = findResponse(trimmed);
+        addMessage(renderBotText(resp.text), 'bot');
+        setMayaMood(resp.isFallback ? 'concerned' : 'default');
+        renderSuggestions(resp.suggestions);
       }, 1000);
     }
+
+    // Clickable links inside bot bubbles → open article
+    chatMessages.addEventListener('click', (e) => {
+      const link = e.target.closest('.sw-bot-link');
+      if (link) {
+        const slug = link.dataset.article;
+        if (articles[slug]) showArticle(slug);
+      }
+    });
 
     chatForm.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -1582,6 +2045,15 @@
     quickReplies.querySelectorAll('.sw-chip').forEach(chip => {
       chip.addEventListener('click', () => handleSend(chip.dataset.msg));
     });
+
+    // === Restore state on boot ===
+    if (persisted.activeTab && persisted.activeTab !== 'aide') {
+      showView(persisted.activeTab);
+    }
+    if (persisted.isOpen) {
+      // Defer to next frame so opening animation plays cleanly
+      requestAnimationFrame(() => setOpen(true));
+    }
   })();
 </script>
 
