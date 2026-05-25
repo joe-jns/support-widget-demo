@@ -1141,50 +1141,6 @@
   }
   .sw-search-empty.show { display: block; }
 
-  /* === Onboarding tip (first open) === */
-  .sw-onboarding-tip {
-    margin: 0 18px 14px;
-    padding: 11px 14px;
-    background: linear-gradient(135deg, #fff8ec 0%, #fffaf2 100%);
-    border: 1px solid rgba(249, 166, 55, 0.3);
-    border-radius: 10px;
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    font-size: 12.5px;
-    color: var(--text-secondary);
-    line-height: 1.45;
-    animation: msgIn 0.5s var(--ease-out) 0.4s backwards;
-    position: relative;
-  }
-  .sw-onboarding-tip-icon {
-    color: var(--accent);
-    flex-shrink: 0;
-    margin-top: 1px;
-  }
-  .sw-onboarding-tip-text { flex: 1; }
-  .sw-onboarding-tip-text strong { color: var(--text-primary); }
-  .sw-onboarding-close {
-    background: transparent;
-    border: none;
-    color: var(--text-muted);
-    cursor: pointer;
-    width: 20px;
-    height: 20px;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 5px;
-    flex-shrink: 0;
-    transition: background 0.15s, color 0.15s;
-  }
-  .sw-onboarding-close:hover {
-    background: rgba(20, 25, 35, 0.06);
-    color: var(--text-primary);
-  }
-  .sw-onboarding-tip.hidden { display: none; }
-
   /* === Reduced motion === */
   @media (prefers-reduced-motion: reduce) {
     .sw-fab, .sw-fab *, .sw-fab::before,
@@ -1310,23 +1266,6 @@
             <path d="M9 11.5V8.5a1.5 1.5 0 0 0-3 0V16c0 2 1.5 5 5 5h2c3 0 5-2 5-5v-5a1.5 1.5 0 0 0-3 0"></path>
           </svg></h2>
           <p>Sur quoi tu bosses aujourd'hui ?</p>
-        </div>
-
-        <div class="sw-onboarding-tip hidden" id="swOnboardingTip">
-          <svg class="sw-onboarding-tip-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M9 18h6"></path>
-            <path d="M10 22h4"></path>
-            <path d="M15.09 14a5 5 0 1 0-6.18 0 5 5 0 0 1 1.59 4 1 1 0 0 0 1 1h2a1 1 0 0 0 1-1 5 5 0 0 1 1.59-4z"></path>
-          </svg>
-          <div class="sw-onboarding-tip-text">
-            <strong>Astuce :</strong> tape ta question dans la barre de recherche, choisis un article populaire, ou bascule sur le tab <strong>Chat</strong> pour discuter avec Maya.
-          </div>
-          <button class="sw-onboarding-close" id="swOnboardingClose" aria-label="Fermer le conseil">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
         </div>
 
         <div class="sw-search">
@@ -1504,8 +1443,6 @@
 
     const fabBadge = document.getElementById('swFabBadge');
     const mayaAvatar = document.getElementById('swMayaAvatar');
-    const onboardingTip = document.getElementById('swOnboardingTip');
-    const onboardingClose = document.getElementById('swOnboardingClose');
 
     // Mini avatar SVG used next to each bot bubble
     const MINI_AVATAR_SVG = `
@@ -1531,7 +1468,6 @@
       activeTab: 'aide',
       chatHistory: [],
       greetingDismissed: false,
-      onboardingDone: false,
       unread: 0
     };
     function loadState() {
@@ -1548,7 +1484,6 @@
           activeTab,
           chatHistory,
           greetingDismissed,
-          onboardingDone,
           unread
         }));
       } catch {}
@@ -1560,7 +1495,6 @@
     let activeTab = persisted.activeTab;
     let chatInitialized = false;
     let greetingDismissed = persisted.greetingDismissed;
-    let onboardingDone = persisted.onboardingDone;
     let unread = persisted.unread;
     let chatHistory = persisted.chatHistory || [];
 
@@ -1615,21 +1549,12 @@
         greetingDismissed = true;
         unread = 0;
         updateBadge();
-        if (!onboardingDone && activeTab === 'aide') {
-          onboardingTip.classList.remove('hidden');
-        }
         if (currentView === 'chat' && !chatInitialized) initChat();
       } else {
         updateBadge();
       }
       saveState();
     }
-
-    onboardingClose.addEventListener('click', () => {
-      onboardingTip.classList.add('hidden');
-      onboardingDone = true;
-      saveState();
-    });
     fab.addEventListener('click', (e) => {
       e.stopPropagation();
       setOpen(!isOpen);
