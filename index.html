@@ -1965,8 +1965,8 @@
         quickReplies.style.display = 'none';
         return;
       }
-      // Fresh chat — type out the welcome message
-      setTimeout(() => typeMessage(WELCOME_MSG, 'bot'), 350);
+      // Fresh chat — show welcome message
+      setTimeout(() => addMessage(WELCOME_MSG, 'bot'), 350);
     }
 
     function renderMessage(html, role, timestamp) {
@@ -2016,24 +2016,6 @@
       saveState();
     }
 
-    // === Typewriter effect for the welcome message ===
-    function typeMessage(text, role) {
-      const now = Date.now();
-      const row = renderMessage('', role, now);
-      const bubble = row.querySelector('.sw-msg');
-      let i = 0;
-      const speed = 18; // ms per character
-      const interval = setInterval(() => {
-        i++;
-        bubble.textContent = text.substring(0, i);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-        if (i >= text.length) {
-          clearInterval(interval);
-          chatHistory.push({ html: text, role, timestamp: now });
-          saveState();
-        }
-      }, speed);
-    }
     function showTyping() {
       const row = document.createElement('div');
       row.className = 'sw-msg-row bot';
