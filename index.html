@@ -1636,9 +1636,13 @@
     });
 
     // === Click outside to close ===
+    // Stop propagation from inside the panel so clicks on elements
+    // that remove themselves from the DOM (suggestions, typing dots)
+    // don't reach the document handler and trigger an outside-click close.
+    panel.addEventListener('click', (e) => e.stopPropagation());
     document.addEventListener('click', (e) => {
       if (!isOpen) return;
-      if (panel.contains(e.target) || fab.contains(e.target) || greeting.contains(e.target)) return;
+      if (fab.contains(e.target) || greeting.contains(e.target)) return;
       setOpen(false);
     });
 
