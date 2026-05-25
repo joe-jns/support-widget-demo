@@ -651,6 +651,34 @@
   }
   .sw-msg-row.bot { align-self: flex-start; }
   .sw-msg-row.user { align-self: flex-end; }
+  .sw-msg-content {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .sw-msg-row.user .sw-msg-content { align-items: flex-end; }
+  .sw-msg-time {
+    font-size: 10.5px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    padding: 0 6px;
+    opacity: 0.75;
+    line-height: 1.2;
+  }
+  .sw-time-separator {
+    align-self: center;
+    font-size: 10.5px;
+    color: var(--text-muted);
+    margin: 8px 0 4px;
+    font-weight: 600;
+    text-transform: lowercase;
+    letter-spacing: 0.04em;
+    background: var(--bg-elevated);
+    padding: 3px 10px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    animation: msgIn 0.3s var(--ease-out);
+  }
   .sw-msg-mini-avatar {
     width: 24px;
     height: 24px;
@@ -744,25 +772,34 @@
   .sw-msg strong { font-weight: 600; }
 
   .sw-typing {
-    align-self: flex-start;
     background: var(--bg-elevated);
     border: 1px solid var(--border);
-    padding: 12px 16px;
+    padding: 9px 13px;
     border-radius: 10px;
     border-bottom-left-radius: 3px;
     display: flex;
-    gap: 4px;
+    align-items: center;
+    gap: 7px;
     animation: msgIn 0.2s ease;
   }
-  .sw-typing span {
-    width: 7px;
-    height: 7px;
+  .sw-typing-text {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+  .sw-typing-dots {
+    display: flex;
+    gap: 3px;
+  }
+  .sw-typing-dot {
+    width: 5px;
+    height: 5px;
     background: var(--text-muted);
     border-radius: 50%;
     animation: typingDot 1.4s infinite ease-in-out;
   }
-  .sw-typing span:nth-child(2) { animation-delay: 0.2s; }
-  .sw-typing span:nth-child(3) { animation-delay: 0.4s; }
+  .sw-typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .sw-typing-dot:nth-child(3) { animation-delay: 0.4s; }
   @keyframes typingDot {
     0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
     30%           { transform: translateY(-6px); opacity: 1; }
@@ -1497,6 +1534,18 @@
       }
     }
 
+    function formatRelativeTime(ts) {
+      const diff = Date.now() - ts;
+      const min = Math.floor(diff / 60000);
+      if (min < 1) return "à l'instant";
+      if (min < 60) return `il y a ${min} min`;
+      const h = Math.floor(min / 60);
+      if (h < 24) return `il y a ${h} h`;
+      const d = Math.floor(h / 24);
+      if (d === 1) return "hier";
+      return `il y a ${d} j`;
+    }
+
     // === Persistent state ===
     const STATE_KEY = 'bt-support-widget-v1';
     const defaultState = {
@@ -1636,9 +1685,19 @@
         tabButtons.forEach(btn => {
           btn.classList.toggle('active', btn.dataset.tab === name);
         });
-        if (name === 'chat' && !chatInitialized) initChat();
+        if (name === 'chat') {
+          if (!chatInitialized) initChat();
+          else refreshTimestamps();
+        }
         saveState();
       }
+    }
+
+    function refreshTimestamps() {
+      chatMessages.querySelectorAll('.sw-msg-time').forEach(el => {
+        const ts = parseInt(el.dataset.ts, 10);
+        if (ts) el.textContent = formatRelativeTime(ts);
+      });
     }
 
     // === Articles database ===
@@ -1889,47 +1948,107 @@
           '<a class="sw-bot-link" data-article="$2">$1</a>');
     }
 
+    const WELCOME_MSG = "Salut ! Je suis Maya, l'assistante IA de Business Toolbox. Pose-moi une question sur GHL, ou utilise l'une des suggestions ci-dessous 👇";
+
     function initChat() {
       chatInitialized = true;
       if (chatHistory.length > 0) {
-        // Restore previous conversation
-        chatHistory.forEach(m => renderMessage(m.html, m.role));
+        // Restore previous conversation — render instantly, no typewriter
+        let prevTs = null;
+        chatHistory.forEach(m => {
+          if (prevTs && m.timestamp && (m.timestamp - prevTs) > 5 * 60 * 1000) {
+            appendSeparator(m.timestamp);
+          }
+          renderMessage(m.html, m.role, m.timestamp);
+          prevTs = m.timestamp || prevTs;
+        });
         quickReplies.style.display = 'none';
         return;
       }
-      setTimeout(() => {
-        addMessage("Salut ! Je suis Maya, l'assistante IA de Business Toolbox. Pose-moi une question sur GHL, ou utilise l'une des suggestions ci-dessous 👇", 'bot');
-      }, 200);
+      // Fresh chat — type out the welcome message
+      setTimeout(() => typeMessage(WELCOME_MSG, 'bot'), 350);
     }
-    function renderMessage(html, role) {
+
+    function renderMessage(html, role, timestamp) {
       const row = document.createElement('div');
       row.className = `sw-msg-row ${role}`;
+      const ts = timestamp || Date.now();
+      const timeHTML = `<div class="sw-msg-time" data-ts="${ts}">${formatRelativeTime(ts)}</div>`;
       if (role === 'bot') {
         row.innerHTML = `
           <div class="sw-msg-mini-avatar">${MINI_AVATAR_SVG}</div>
-          <div class="sw-msg ${role}">${html}</div>`;
+          <div class="sw-msg-content">
+            <div class="sw-msg ${role}">${html}</div>
+            ${timeHTML}
+          </div>`;
       } else {
-        row.innerHTML = `<div class="sw-msg ${role}">${html}</div>`;
+        row.innerHTML = `
+          <div class="sw-msg-content">
+            <div class="sw-msg ${role}">${html}</div>
+            ${timeHTML}
+          </div>`;
       }
       chatMessages.appendChild(row);
       chatMessages.scrollTop = chatMessages.scrollHeight;
       return row;
     }
+
+    function appendSeparator(ts) {
+      const sep = document.createElement('div');
+      sep.className = 'sw-time-separator';
+      sep.textContent = formatRelativeTime(ts);
+      chatMessages.appendChild(sep);
+    }
+
     function addMessage(html, role) {
-      renderMessage(html, role);
-      chatHistory.push({ html, role });
+      const now = Date.now();
+      // Insert time separator if big gap
+      const lastTs = chatHistory.length ? chatHistory[chatHistory.length - 1].timestamp : null;
+      if (lastTs && (now - lastTs) > 5 * 60 * 1000) {
+        appendSeparator(now);
+      }
+      renderMessage(html, role, now);
+      chatHistory.push({ html, role, timestamp: now });
       if (role === 'bot' && !isOpen) {
         unread++;
         updateBadge();
       }
       saveState();
     }
+
+    // === Typewriter effect for the welcome message ===
+    function typeMessage(text, role) {
+      const now = Date.now();
+      const row = renderMessage('', role, now);
+      const bubble = row.querySelector('.sw-msg');
+      let i = 0;
+      const speed = 18; // ms per character
+      const interval = setInterval(() => {
+        i++;
+        bubble.textContent = text.substring(0, i);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        if (i >= text.length) {
+          clearInterval(interval);
+          chatHistory.push({ html: text, role, timestamp: now });
+          saveState();
+        }
+      }, speed);
+    }
     function showTyping() {
-      const div = document.createElement('div');
-      div.className = 'sw-typing';
-      div.id = 'typingIndicator';
-      div.innerHTML = '<span></span><span></span><span></span>';
-      chatMessages.appendChild(div);
+      const row = document.createElement('div');
+      row.className = 'sw-msg-row bot';
+      row.id = 'typingIndicator';
+      row.innerHTML = `
+        <div class="sw-msg-mini-avatar">${MINI_AVATAR_SVG}</div>
+        <div class="sw-typing">
+          <span class="sw-typing-text">Maya écrit</span>
+          <div class="sw-typing-dots">
+            <span class="sw-typing-dot"></span>
+            <span class="sw-typing-dot"></span>
+            <span class="sw-typing-dot"></span>
+          </div>
+        </div>`;
+      chatMessages.appendChild(row);
       chatMessages.scrollTop = chatMessages.scrollHeight;
     }
     function hideTyping() {
