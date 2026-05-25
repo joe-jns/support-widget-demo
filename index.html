@@ -1949,11 +1949,13 @@
     }
 
     const WELCOME_MSG = "Salut ! Je suis Maya, l'assistante IA de Business Toolbox. Pose-moi une question sur GHL, ou utilise l'une des suggestions ci-dessous 👇";
+    let pendingWelcome = null;
+    let pendingReply = null;
 
     function initChat() {
       chatInitialized = true;
       if (chatHistory.length > 0) {
-        // Restore previous conversation — render instantly, no typewriter
+        // Restore previous conversation
         let prevTs = null;
         chatHistory.forEach(m => {
           if (prevTs && m.timestamp && (m.timestamp - prevTs) > 5 * 60 * 1000) {
@@ -1965,8 +1967,12 @@
         quickReplies.style.display = 'none';
         return;
       }
-      // Fresh chat — show welcome message
-      setTimeout(() => addMessage(WELCOME_MSG, 'bot'), 350);
+      // Fresh chat — show welcome message (cancel any prior pending one)
+      if (pendingWelcome) clearTimeout(pendingWelcome);
+      pendingWelcome = setTimeout(() => {
+        addMessage(WELCOME_MSG, 'bot');
+        pendingWelcome = null;
+      }, 350);
     }
 
     function renderMessage(html, role, timestamp) {
@@ -2069,6 +2075,8 @@
     function handleSend(text) {
       const trimmed = text.trim();
       if (!trimmed) return;
+      // Cancel any in-flight bot reply (user is sending another message)
+      if (pendingReply) { clearTimeout(pendingReply); pendingReply = null; hideTyping(); }
       // Remove any lingering suggestions from previous bot reply
       chatMessages.querySelectorAll('.sw-msg-suggestions').forEach(el => el.remove());
       addMessage(escapeHtml(trimmed), 'user');
@@ -2076,12 +2084,13 @@
       chatInput.style.height = 'auto';
       quickReplies.style.display = 'none';
       showTyping();
-      setTimeout(() => {
+      pendingReply = setTimeout(() => {
         hideTyping();
         const resp = findResponse(trimmed);
         addMessage(renderBotText(resp.text), 'bot');
         setMayaMood(resp.isFallback ? 'concerned' : 'default');
         renderSuggestions(resp.suggestions);
+        pendingReply = null;
       }, 1000);
     }
 
@@ -2115,6 +2124,10 @@
     // === New chat button → reset conversation ===
     const newChatBtn = document.getElementById('swNewChat');
     newChatBtn.addEventListener('click', () => {
+      // Cancel any pending welcome / bot reply / mood timers
+      if (pendingWelcome) { clearTimeout(pendingWelcome); pendingWelcome = null; }
+      if (pendingReply)   { clearTimeout(pendingReply);   pendingReply = null; }
+      clearTimeout(setMayaMood._t);
       chatHistory = [];
       chatMessages.innerHTML = '';
       quickReplies.style.display = '';
