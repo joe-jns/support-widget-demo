@@ -688,37 +688,33 @@
     box-shadow: 0 4px 10px -3px rgba(249, 166, 55, 0.45);
   }
 
-  /* Chat toolbar (with new chat button) */
-  .sw-chat-toolbar {
-    padding: 8px 12px 8px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    background: var(--bg-surface);
-    flex-shrink: 0;
-  }
+  /* New chat button (floating top-right of chat view) */
   .sw-new-chat-btn {
-    background: transparent;
-    border: 1px solid var(--border-strong);
-    color: var(--text-secondary);
-    font-size: 11.5px;
-    font-weight: 500;
-    padding: 5px 10px;
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    z-index: 5;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
     border-radius: 8px;
+    color: var(--text-muted);
     cursor: pointer;
     font-family: inherit;
     display: flex;
     align-items: center;
-    gap: 5px;
-    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    justify-content: center;
+    transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.15s;
+    box-shadow: 0 2px 6px -2px rgba(20, 25, 35, 0.08);
   }
   .sw-new-chat-btn:hover {
     background: var(--accent-soft);
     border-color: rgba(249, 166, 55, 0.5);
     color: var(--accent-deep);
   }
-  .sw-new-chat-btn:active { transform: scale(0.97); }
+  .sw-new-chat-btn:active { transform: scale(0.92); }
 
   /* Bot suggestions after a reply */
   .sw-msg-suggestions {
@@ -1382,17 +1378,14 @@
 
     <!-- CHAT VIEW -->
     <div class="sw-view" id="viewChat">
-      <div class="sw-chat-toolbar">
-        <button class="sw-new-chat-btn" id="swNewChat" type="button">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 12a9 9 0 0 1 15.5-6.3L21 8"></path>
-            <path d="M21 3v5h-5"></path>
-            <path d="M21 12a9 9 0 0 1-15.5 6.3L3 16"></path>
-            <path d="M3 21v-5h5"></path>
-          </svg>
-          Nouveau chat
-        </button>
-      </div>
+      <button class="sw-new-chat-btn" id="swNewChat" type="button" title="Nouveau chat" aria-label="Nouveau chat">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12a9 9 0 0 1 15.5-6.3L21 8"></path>
+          <path d="M21 3v5h-5"></path>
+          <path d="M21 12a9 9 0 0 1-15.5 6.3L3 16"></path>
+          <path d="M3 21v-5h5"></path>
+        </svg>
+      </button>
       <div class="sw-chat-messages" id="chatMessages"></div>
       <div class="sw-quick-replies" id="quickReplies">
         <button class="sw-chip" data-msg="Comment configurer un workflow ?">Workflow</button>
