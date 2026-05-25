@@ -716,6 +716,41 @@
     box-shadow: 0 4px 10px -3px rgba(249, 166, 55, 0.45);
   }
 
+  /* Error bubble + retry button */
+  .sw-msg.sw-msg-error {
+    background: #fff4f4;
+    border-color: rgba(239, 68, 68, 0.25);
+    color: #b91c1c;
+  }
+  .sw-msg-retry {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 8px;
+    padding: 5px 10px;
+    background: white;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #b91c1c;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .sw-msg-retry:hover {
+    background: #fee2e2;
+    border-color: rgba(239, 68, 68, 0.6);
+  }
+
+  /* Disabled state for send button */
+  .sw-send:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+  .sw-send:disabled:hover { transform: none; }
+
   /* New chat button (floating top-right of chat view) */
   .sw-new-chat-btn {
     position: absolute;
@@ -1398,7 +1433,7 @@
             </svg>
             Email
           </a>
-          <a class="sw-contact-chip" href="https://wa.me/15145550199" target="_blank" rel="noopener">
+          <a class="sw-contact-chip" href="https://wa.me/15145550199" target="_blank" rel="noopener noreferrer">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
               <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413"/>
             </svg>
@@ -1431,7 +1466,7 @@
         <button class="sw-chip" data-msg="Comment utiliser un snapshot ?">Snapshot</button>
       </div>
       <form class="sw-chat-input" id="chatForm">
-        <textarea id="chatInput" rows="1" placeholder="Tapez votre message..." autocomplete="off"></textarea>
+        <textarea id="chatInput" rows="1" maxlength="2000" placeholder="Tapez votre message..." autocomplete="off"></textarea>
         <button type="submit" class="sw-send" id="chatSend" aria-label="Envoyer">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="22" y1="2" x2="11" y2="13"></line>
@@ -1512,6 +1547,7 @@
     const chatMessages = document.getElementById('chatMessages');
     const chatForm     = document.getElementById('chatForm');
     const chatInput    = document.getElementById('chatInput');
+    const chatSend     = document.getElementById('chatSend');
     const quickReplies = document.getElementById('quickReplies');
 
     const fabBadge = document.getElementById('swFabBadge');
@@ -1546,6 +1582,26 @@
       return `il y a ${d} j`;
     }
 
+    // === IDs (session = stable per browser, conversation = reset on "Nouveau chat") ===
+    function uuid() {
+      if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+        const r = Math.random() * 16 | 0;
+        return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+      });
+    }
+    const SESSION_KEY = 'bt-sw-session';
+    function getSessionId() {
+      let id;
+      try { id = localStorage.getItem(SESSION_KEY); } catch {}
+      if (!id) {
+        id = uuid();
+        try { localStorage.setItem(SESSION_KEY, id); } catch {}
+      }
+      return id;
+    }
+    const sessionId = getSessionId();
+
     // === Persistent state ===
     const STATE_KEY = 'bt-support-widget-v1';
     const defaultState = {
@@ -1553,13 +1609,39 @@
       activeTab: 'aide',
       chatHistory: [],
       greetingDismissed: false,
-      unread: 0
+      unread: 0,
+      conversationId: null
     };
     function loadState() {
       try {
         const raw = localStorage.getItem(STATE_KEY);
         if (!raw) return { ...defaultState };
-        return { ...defaultState, ...JSON.parse(raw) };
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object') return { ...defaultState };
+        // Validate chatHistory shape — drop anything malformed (defends against tampered localStorage)
+        if (Array.isArray(parsed.chatHistory)) {
+          parsed.chatHistory = parsed.chatHistory
+            .filter(m =>
+              m && typeof m === 'object' &&
+              (m.role === 'user' || m.role === 'bot') &&
+              typeof m.html === 'string' &&
+              m.html.length <= 10000 &&
+              (typeof m.timestamp === 'number' || m.timestamp == null)
+            )
+            .slice(-100); // hard cap to last 100 entries
+        } else {
+          parsed.chatHistory = [];
+        }
+        // Sanitize scalar fields
+        if (typeof parsed.activeTab !== 'string' ||
+            !['aide', 'chat'].includes(parsed.activeTab)) parsed.activeTab = 'aide';
+        if (typeof parsed.unread !== 'number' || parsed.unread < 0) parsed.unread = 0;
+        if (typeof parsed.isOpen !== 'boolean') parsed.isOpen = false;
+        if (typeof parsed.greetingDismissed !== 'boolean') parsed.greetingDismissed = false;
+        if (typeof parsed.conversationId !== 'string' || parsed.conversationId.length > 64) {
+          parsed.conversationId = null;
+        }
+        return { ...defaultState, ...parsed };
       } catch { return { ...defaultState }; }
     }
     function saveState() {
@@ -1567,9 +1649,10 @@
         localStorage.setItem(STATE_KEY, JSON.stringify({
           isOpen,
           activeTab,
-          chatHistory,
+          chatHistory: chatHistory.slice(-100), // cap to last 100
           greetingDismissed,
-          unread
+          unread,
+          conversationId
         }));
       } catch {}
     }
@@ -1582,6 +1665,7 @@
     let greetingDismissed = persisted.greetingDismissed;
     let unread = persisted.unread;
     let chatHistory = persisted.chatHistory || [];
+    let conversationId = persisted.conversationId || uuid();
 
     function updateBadge() {
       if (unread > 0 && !isOpen) {
@@ -1912,45 +1996,56 @@
     });
 
     // === Chat logic ===
+    // === Local mock responses (will be replaced by n8n call later) ===
     const responses = {
       workflow: {
         kw: ['workflow', 'workflows', 'automatisation'],
-        text: "Pour créer un workflow dans GHL, allez dans <strong>Automation → Workflows → + Create Workflow</strong>. Choisissez un déclencheur (formulaire soumis, tag ajouté, rendez-vous, etc.), puis ajoutez des actions (envoi d'email/SMS, attente, condition, mise à jour de contact...). Pensez à activer le workflow en haut à droite avant de tester.\n\nJ'ai un [guide complet sur les workflows](article:workflow) si tu veux les détails.",
+        text: "Pour créer un workflow dans GHL, allez dans **Automation → Workflows → + Create Workflow**. Choisissez un déclencheur (formulaire soumis, tag ajouté, rendez-vous, etc.), puis ajoutez des actions (envoi d'email/SMS, attente, condition, mise à jour de contact...). Pensez à activer le workflow en haut à droite avant de tester.\n\nJ'ai un [guide complet sur les workflows](article:workflow) si tu veux les détails.",
         suggestions: ["Comment ajouter une condition ?", "Templates disponibles", "Activer un workflow"]
       },
       calendar: {
         kw: ['calendrier', 'calendar', 'rendez-vous', 'rdv'],
-        text: "Pour configurer un calendrier : <strong>Calendars → Calendar Settings → + Create Calendar</strong>. Définissez la durée des slots, vos disponibilités hebdo, le buffer entre les RDV et les rappels automatiques. Vous pouvez ensuite l'intégrer à un formulaire ou via un lien direct.",
+        text: "Pour configurer un calendrier : **Calendars → Calendar Settings → + Create Calendar**. Définissez la durée des slots, vos disponibilités hebdo, le buffer entre les RDV et les rappels automatiques. Vous pouvez ensuite l'intégrer à un formulaire ou via un lien direct.",
         suggestions: ["Lier à un workflow", "Rappels automatiques", "Calendrier d'équipe"]
       },
       email: {
         kw: ['email', 'mail', 'smtp', 'mailgun'],
-        text: "Les paramètres email se trouvent dans <strong>Settings → Email Services</strong>. Tu peux connecter Mailgun (recommandé), SMTP custom, ou utiliser le SMTP par défaut. N'oublie pas de configurer SPF, DKIM et DMARC sur ton domaine.\n\nVoir le [guide détaillé Mailgun](article:email) pour les étapes complètes.",
+        text: "Les paramètres email se trouvent dans **Settings → Email Services**. Tu peux connecter Mailgun (recommandé), SMTP custom, ou utiliser le SMTP par défaut. N'oublie pas de configurer SPF, DKIM et DMARC sur ton domaine.\n\nVoir le [guide détaillé Mailgun](article:email) pour les étapes complètes.",
         suggestions: ["C'est quoi SPF/DKIM ?", "Tester la délivrabilité", "Email vs SMS"]
       },
       snapshot: {
         kw: ['snapshot', 'snapshots', 'modèle', 'template'],
-        text: "Un snapshot capture la configuration complète d'un sous-compte (workflows, calendriers, pipelines, formulaires...). Pour l'utiliser : <strong>Agency View → Snapshots → Load to Sub-Account</strong>.\n\nDétails complets dans [Créer et utiliser un snapshot](article:snapshot).",
+        text: "Un snapshot capture la configuration complète d'un sous-compte (workflows, calendriers, pipelines, formulaires...). Pour l'utiliser : **Agency View → Snapshots → Load to Sub-Account**.\n\nDétails complets dans [Créer et utiliser un snapshot](article:snapshot).",
         suggestions: ["Créer mon premier snapshot", "Vendre un snapshot", "Mettre à jour un snapshot"]
       }
     };
     const fallback = {
-      text: "Je ne trouve pas de réponse précise à ta question. Tu peux contacter notre équipe par <strong>email</strong> ou <strong>WhatsApp</strong> via le tab Aide → Besoin d'un humain.",
+      text: "Je ne trouve pas de réponse précise à ta question. Tu peux contacter notre équipe par **email** ou **WhatsApp** via le tab Aide → Besoin d'un humain.",
       suggestions: ["Comment configurer un workflow ?", "Paramètres email", "Utiliser un snapshot"],
       isFallback: true
     };
 
-    function renderBotText(text) {
-      // Convert \n\n to <br><br>, then [text](article:slug) → clickable link
-      return text
-        .replace(/\n\n/g, '<br><br>')
-        .replace(/\[([^\]]+)\]\(article:([a-z]+)\)/g,
-          '<a class="sw-bot-link" data-article="$2">$1</a>');
+    /**
+     * Single entry point for AI calls. Today: mock. Tomorrow: n8n.
+     * To swap to n8n, replace the body of this function with:
+     *   const res = await fetch(N8N_URL, { method: 'POST', headers: {...}, body: JSON.stringify({message, sessionId, conversationId}) });
+     *   if (!res.ok) throw new Error('API error');
+     *   return await res.json(); // expected shape: { text, suggestions, isFallback? }
+     */
+    async function askAI(message, { sessionId, conversationId } = {}) {
+      // Simulate network latency (real n8n call would replace this)
+      await new Promise(r => setTimeout(r, 900));
+      const lower = message.toLowerCase();
+      for (const key in responses) {
+        if (responses[key].kw.some(kw => lower.includes(kw))) {
+          return { ...responses[key], isFallback: false };
+        }
+      }
+      return { ...fallback };
     }
 
     const WELCOME_MSG = "Salut ! Je suis Maya, l'assistante IA de Business Toolbox. Pose-moi une question sur GHL, ou utilise l'une des suggestions ci-dessous 👇";
     let pendingWelcome = null;
-    let pendingReply = null;
 
     function initChat() {
       chatInitialized = true;
@@ -2072,26 +2167,101 @@
       div.textContent = str;
       return div.innerHTML;
     }
-    function handleSend(text) {
-      const trimmed = text.trim();
+
+    /**
+     * Strict sanitizer for bot replies. Strategy: escape EVERYTHING first,
+     * then selectively re-inject a tiny whitelist of formatting:
+     *   - **bold**          → <strong>bold</strong>
+     *   - [text](article:slug) → internal article link
+     *   - [text](https://…) → external link (noopener, noreferrer)
+     *   - \n\n              → paragraph break
+     *   - \n                → line break
+     * Anything else (including <script>, onerror, etc.) is rendered as plain text.
+     */
+    function safeRenderBot(rawText) {
+      if (typeof rawText !== 'string') return '';
+      let s = escapeHtml(rawText);
+      // Bold
+      s = s.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+      // Internal article link [text](article:slug) — slug constrained to a-z0-9-_
+      s = s.replace(/\[([^\]]+)\]\(article:([a-z0-9_-]+)\)/gi,
+        '<a class="sw-bot-link" data-article="$2">$1</a>');
+      // External link [text](https://…) — only http(s), with noopener+noreferrer
+      s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)<>"']+)\)/g,
+        '<a href="$2" target="_blank" rel="noopener noreferrer" class="sw-bot-link">$1</a>');
+      // Line breaks
+      s = s.replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>');
+      return s;
+    }
+    const MAX_MESSAGE_LENGTH = 2000;
+    let inFlight = false;
+
+    function setSendingState(sending) {
+      inFlight = sending;
+      chatSend.disabled = sending;
+    }
+
+    async function handleSend(text) {
+      if (inFlight) return; // ignore spam while a reply is pending
+      let trimmed = (text || '').trim();
       if (!trimmed) return;
-      // Cancel any in-flight bot reply (user is sending another message)
-      if (pendingReply) { clearTimeout(pendingReply); pendingReply = null; hideTyping(); }
-      // Remove any lingering suggestions from previous bot reply
-      chatMessages.querySelectorAll('.sw-msg-suggestions').forEach(el => el.remove());
+      if (trimmed.length > MAX_MESSAGE_LENGTH) {
+        trimmed = trimmed.slice(0, MAX_MESSAGE_LENGTH);
+      }
+
+      // Remove any lingering suggestions / error retries from previous reply
+      chatMessages.querySelectorAll('.sw-msg-suggestions, .sw-msg-error-row').forEach(el => el.remove());
+
       addMessage(escapeHtml(trimmed), 'user');
       chatInput.value = '';
       chatInput.style.height = 'auto';
       quickReplies.style.display = 'none';
       showTyping();
-      pendingReply = setTimeout(() => {
+      setSendingState(true);
+
+      // Snapshot conversation id — if user resets while in-flight, we drop the stale reply
+      const myConvId = conversationId;
+
+      try {
+        const resp = await askAI(trimmed, { sessionId, conversationId });
+        if (myConvId !== conversationId) return; // stale, conversation was reset
         hideTyping();
-        const resp = findResponse(trimmed);
-        addMessage(renderBotText(resp.text), 'bot');
+        addMessage(safeRenderBot(resp.text), 'bot');
         setMayaMood(resp.isFallback ? 'concerned' : 'default');
         renderSuggestions(resp.suggestions);
-        pendingReply = null;
-      }, 1000);
+      } catch (err) {
+        if (myConvId !== conversationId) return;
+        hideTyping();
+        addErrorMessage(trimmed);
+      } finally {
+        if (myConvId === conversationId) setSendingState(false);
+      }
+    }
+
+    function addErrorMessage(failedMessage) {
+      const row = document.createElement('div');
+      row.className = 'sw-msg-row bot sw-msg-error-row';
+      row.innerHTML = `
+        <div class="sw-msg-mini-avatar">${MINI_AVATAR_SVG}</div>
+        <div class="sw-msg-content">
+          <div class="sw-msg bot sw-msg-error">
+            Désolé, je n'arrive pas à répondre pour le moment.
+            <button class="sw-msg-retry" type="button">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 12a9 9 0 0 1 15.5-6.3L21 8"></path>
+                <path d="M21 3v5h-5"></path>
+              </svg>
+              Réessayer
+            </button>
+          </div>
+        </div>`;
+      row.querySelector('.sw-msg-retry').addEventListener('click', () => {
+        row.remove();
+        handleSend(failedMessage);
+      });
+      chatMessages.appendChild(row);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+      setMayaMood('concerned');
     }
 
     // Clickable links inside bot bubbles → open article
@@ -2124,14 +2294,17 @@
     // === New chat button → reset conversation ===
     const newChatBtn = document.getElementById('swNewChat');
     newChatBtn.addEventListener('click', () => {
-      // Cancel any pending welcome / bot reply / mood timers
+      // Cancel pending welcome / mood timer; conversationId change makes any
+      // in-flight bot reply drop itself when it resolves (stale guard).
       if (pendingWelcome) { clearTimeout(pendingWelcome); pendingWelcome = null; }
-      if (pendingReply)   { clearTimeout(pendingReply);   pendingReply = null; }
       clearTimeout(setMayaMood._t);
       chatHistory = [];
       chatMessages.innerHTML = '';
       quickReplies.style.display = '';
       chatInitialized = false;
+      conversationId = uuid(); // new context for the AI
+      setSendingState(false); // re-enable input (in case reset happened mid-flight)
+      hideTyping();
       setMayaMood('default');
       saveState();
       initChat();
